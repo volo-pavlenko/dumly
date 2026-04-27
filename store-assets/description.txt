@@ -1,0 +1,42 @@
+Dumly adds a single button to X.com reply boxes. Click it, get an AI-generated reply. That's it.
+
+Your OpenAI API key. Your model. Your prompt. No accounts, no subscriptions, no middleman.
+
+HOW IT WORKS
+
+• A lightning bolt icon appears in the reply toolbar on X.com
+• Click it — Dumly extracts the post text, images, quoted tweets, and author
+• Sends it to the OpenAI API using your own key
+• Inserts the generated reply directly into the reply box
+• Click again to regenerate. Edit freely. You're in control.
+
+THREAD-AWARE
+
+Dumly doesn't just see the post you're replying to. It reads up to 5 posts in the thread, identifies which ones are yours, and generates replies that stay consistent with your position and tone in the conversation.
+
+IMAGE UNDERSTANDING
+
+Posts with images are sent to the vision model. The AI sees what you see and responds accordingly.
+
+CONFIGURABLE
+
+• Model: choose between gpt-5.4-mini, gpt-5.4, or gpt-5.5
+• Persona: write your own system prompt — define exactly how the AI should reply
+• All settings stored locally in your browser
+
+PRIVACY
+
+Zero data collection. No analytics. No telemetry. No server. Your API key stays in chrome.storage.sync on your device. Post content goes directly from your browser to api.openai.com. The developer never sees any of it.
+
+PERMISSIONS (AND WHY)
+
+• storage — save your API key and settings locally
+• activeTab — read X.com post content for reply generation
+• host_permissions (api.openai.com) — make API calls from the content script
+
+REQUIREMENTS
+
+• An OpenAI API key with access to chat completions
+• Chrome (Manifest V3)
+
+Open source. No tracking. No magic. Just your API key and a button.
