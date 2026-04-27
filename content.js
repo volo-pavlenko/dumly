@@ -159,23 +159,7 @@
     selection.selectAllChildren(textbox);
     selection.collapseToStart();
 
-    const inserted = document.execCommand("insertText", false, text);
-
-    if (!inserted) {
-      const inputEvent = new InputEvent("beforeinput", {
-        inputType: "insertText",
-        data: text,
-        bubbles: true,
-        cancelable: true,
-        composed: true,
-      });
-      textbox.dispatchEvent(inputEvent);
-
-      if (textbox.textContent === "" || textbox.textContent !== text) {
-        textbox.textContent = text;
-        textbox.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    }
+    document.execCommand("insertText", false, text);
   }
 
   function showError(anchorElement, message) {
