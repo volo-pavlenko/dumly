@@ -25,6 +25,10 @@
   animation: dumly-spin 1.5s linear infinite;
 }
 
+.dumly-generate-btn.dumly-error {
+  color: #f4212e;
+}
+
 .dumly-generate-btn--floating {
   position: absolute;
   top: 4px;

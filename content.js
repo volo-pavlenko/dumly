@@ -232,6 +232,8 @@
       e.stopPropagation();
 
       if (btn.disabled || activeGenerations.has(replyBox)) return;
+      btn.classList.remove("dumly-error");
+      btn.title = "Generate AI reply";
       activeGenerations.add(replyBox);
 
       const settings = await loadSettings();
@@ -252,12 +254,12 @@
         insertReply(replyBox, reply);
       } catch (err) {
         console.error("[Dumly] Generation failed:", err);
-        showError(btn, err.message.slice(0, 60));
+        btn.classList.add("dumly-error");
+        btn.title = err.message.slice(0, 60);
       } finally {
         btn.disabled = false;
         btn.classList.remove("dumly-generating");
         activeGenerations.delete(replyBox);
-        btn.title = "Generate AI reply";
       }
     });
 
