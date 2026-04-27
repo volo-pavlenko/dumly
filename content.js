@@ -125,7 +125,7 @@
           { role: "system", content: settings.persona },
           { role: "user", content: userParts },
         ],
-        max_tokens: 512,
+        max_completion_tokens: 512,
       }),
     });
 
