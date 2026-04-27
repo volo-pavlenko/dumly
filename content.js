@@ -71,6 +71,125 @@
     return { text, images, quotedText, author };
   }
 
+  function loadSettings() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(
+        {
+          apiKey: "",
+          model: "gpt-5.4-mini",
+          persona:
+            "You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.",
+        },
+        resolve
+      );
+    });
+  }
+
+  async function generateReply(postContent, settings) {
+    const userParts = [];
+
+    let textBlock = "";
+    if (postContent.author) {
+      textBlock += "Post by " + postContent.author + ":\n";
+    }
+    if (postContent.text) {
+      textBlock += postContent.text;
+    }
+    if (postContent.quotedText) {
+      textBlock += "\n\nQuoted tweet: " + postContent.quotedText;
+    }
+    if (!textBlock.trim() && postContent.images.length === 0) {
+      textBlock = "(This post contains media that could not be extracted. Write a general engaging reply.)";
+    }
+
+    if (textBlock.trim()) {
+      userParts.push({ type: "text", text: textBlock.trim() });
+    }
+
+    postContent.images.forEach((url) => {
+      userParts.push({
+        type: "image_url",
+        image_url: { url },
+      });
+    });
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + settings.apiKey,
+      },
+      body: JSON.stringify({
+        model: settings.model,
+        messages: [
+          { role: "system", content: settings.persona },
+          { role: "user", content: userParts },
+        ],
+        max_tokens: 512,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const msg = err.error?.message || "API error: " + response.status;
+      throw new Error(msg);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  }
+
+  function insertReply(editorElement, text) {
+    const textbox = editorElement.querySelector('[role="textbox"]')
+      || editorElement.closest('[role="textbox"]')
+      || editorElement;
+
+    textbox.focus();
+
+    const selection = window.getSelection();
+    selection.selectAllChildren(textbox);
+    selection.collapseToStart();
+
+    if (textbox.textContent.length > 0) {
+      selection.selectAllChildren(textbox);
+    }
+
+    const inserted = document.execCommand("insertText", false, text);
+
+    if (!inserted) {
+      const inputEvent = new InputEvent("beforeinput", {
+        inputType: "insertText",
+        data: text,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+      textbox.dispatchEvent(inputEvent);
+
+      if (textbox.textContent === "" || textbox.textContent !== text) {
+        textbox.textContent = text;
+        textbox.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+  }
+
+  function showError(anchorElement, message) {
+    const existing = anchorElement.parentElement?.querySelector(".dumly-error-toast");
+    if (existing) existing.remove();
+
+    const toast = document.createElement("div");
+    toast.className = "dumly-error-toast";
+    toast.textContent = message;
+
+    const parent = anchorElement.parentElement;
+    if (parent) {
+      parent.style.position = "relative";
+      parent.appendChild(toast);
+    }
+
+    setTimeout(() => toast.remove(), 3000);
+  }
+
   function createIconSvg() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "18");
@@ -93,18 +212,50 @@
     return spinner;
   }
 
+  const activeGenerations = new WeakSet();
+
   function createDumlyButton(replyBox) {
     const btn = document.createElement("button");
     btn.setAttribute(BUTTON_ATTR, "true");
     btn.className = "dumly-generate-btn";
     btn.title = "Generate AI reply";
     btn.appendChild(createIconSvg());
-    btn.addEventListener("click", (e) => {
+
+    btn.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const content = extractPostContent(replyBox);
-      console.log("[Dumly] Extracted post content:", content);
+
+      if (btn.disabled || activeGenerations.has(replyBox)) return;
+
+      const settings = await loadSettings();
+
+      if (!settings.apiKey) {
+        btn.title = "Set API key in Dumly extension settings";
+        showError(btn, "Set API key in extension settings");
+        return;
+      }
+
+      btn.disabled = true;
+      activeGenerations.add(replyBox);
+      btn.textContent = "";
+      btn.appendChild(createSpinner());
+
+      try {
+        const content = extractPostContent(replyBox);
+        const reply = await generateReply(content, settings);
+        insertReply(replyBox, reply);
+      } catch (err) {
+        console.error("[Dumly] Generation failed:", err);
+        showError(btn, err.message.slice(0, 60));
+      } finally {
+        btn.disabled = false;
+        activeGenerations.delete(replyBox);
+        btn.textContent = "";
+        btn.appendChild(createIconSvg());
+        btn.title = "Generate AI reply";
+      }
     });
+
     return btn;
   }
 
