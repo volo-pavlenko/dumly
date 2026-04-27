@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dumly — Privacy Policy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0c14;
+      color: #c8ccd0;
+      line-height: 1.7;
+      padding: 48px 24px;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-size: 48px;
+      color: #e0245e;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+    .tagline {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+    h1 {
+      color: #f0f0f0;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    h2 {
+      color: #e0e0e0;
+      font-size: 18px;
+      margin-top: 36px;
+      margin-bottom: 12px;
+    }
+    p { margin-bottom: 16px; }
+    a {
+      color: #e0245e;
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+    ul {
+      margin-bottom: 16px;
+      padding-left: 20px;
+    }
+    li { margin-bottom: 6px; }
+    code {
+      background: #1a1d2e;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+      color: #e0245e;
+    }
+    .updated {
+      color: #6b7280;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #1a1d2e;
+      color: #6b7280;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Д</div>
+    <div class="tagline">Dumly — AI-powered replies for X.com</div>
+
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: April 27, 2026</p>
+
+    <h2>Data Collection</h2>
+    <p>Dumly does <strong>not</strong> collect, store, or transmit any personal data to any server operated by the developer. There is no analytics, no telemetry, and no tracking of any kind.</p>
+
+    <h2>What Dumly Accesses</h2>
+    <ul>
+      <li><strong>X.com page content:</strong> Dumly reads the text, images, and author information of posts visible on your screen to generate contextual replies. This data is sent directly from your browser to the OpenAI API using your own API key. It is never sent anywhere else.</li>
+      <li><strong>OpenAI API key:</strong> Your API key is stored locally in Chrome's extension storage (<code>chrome.storage.sync</code>) on your device. It is only used to authenticate requests to the OpenAI API. The developer has no access to your key.</li>
+      <li><strong>Settings:</strong> Your model preference and persona prompt are stored locally in Chrome's extension storage.</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>Dumly sends post content to the <strong>OpenAI API</strong> (<code>api.openai.com</code>) to generate replies. This communication is governed by <a href="https://openai.com/privacy">OpenAI's privacy policy</a> and your own OpenAI account terms. You are responsible for your API usage and costs.</p>
+
+    <h2>Data Storage</h2>
+    <p>All data is stored locally on your device via Chrome's built-in extension storage. No data is stored on external servers.</p>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><code>storage</code> — Save your API key, model preference, and persona prompt locally.</li>
+      <li><code>activeTab</code> — Access the content of X.com pages to extract post text and images for reply generation.</li>
+      <li><code>host_permissions (api.openai.com)</code> — Make API calls to OpenAI from the content script.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p>For questions about this privacy policy, open an issue on the <a href="https://github.com/volo-pavlenko/dumly">GitHub repository</a>.</p>
+
+    <div class="footer">
+      Dumly is open source. No tracking. No magic. Just your API key and a button.
+    </div>
+  </div>
+</body>
+</html>
