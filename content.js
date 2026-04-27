@@ -3,6 +3,74 @@
 
   const BUTTON_ATTR = "data-dumly-injected";
 
+  function extractPostContent(editorElement) {
+    let article = editorElement.closest("article");
+
+    if (!article) {
+      article = document.querySelector(
+        '[data-testid="tweet"] article, article[data-testid="tweet"]'
+      );
+    }
+
+    if (!article) {
+      const articles = document.querySelectorAll("article");
+      if (articles.length > 0) {
+        article = articles[0];
+      }
+    }
+
+    if (!article) {
+      return { text: "", images: [], quotedText: "", author: "" };
+    }
+
+    let text = "";
+    const tweetTextEl = article.querySelector('[data-testid="tweetText"]');
+    if (tweetTextEl) {
+      text = tweetTextEl.innerText;
+    }
+
+    let author = "";
+    const userNameEl = article.querySelector('[data-testid="User-Name"]');
+    if (userNameEl) {
+      const links = userNameEl.querySelectorAll("a");
+      const handles = [];
+      links.forEach((link) => {
+        const href = link.getAttribute("href");
+        if (href && href.startsWith("/")) {
+          handles.push("@" + href.slice(1));
+        }
+      });
+      author = handles.length > 0 ? handles[0] : userNameEl.innerText;
+    }
+
+    const images = [];
+    const photoEls = article.querySelectorAll('[data-testid="tweetPhoto"] img');
+    photoEls.forEach((img) => {
+      const src = img.src;
+      if (src && !src.includes("emoji") && !src.includes("profile_images")) {
+        images.push(src);
+      }
+    });
+
+    let quotedText = "";
+    const quoteContainer = article.querySelector('[role="link"][tabindex="0"]');
+    if (quoteContainer) {
+      const quoteTextEl = quoteContainer.querySelector('[data-testid="tweetText"]');
+      if (quoteTextEl) {
+        quotedText = quoteTextEl.innerText;
+      }
+      const quotePhotos = quoteContainer.querySelectorAll("img");
+      quotePhotos.forEach((img) => {
+        const src = img.src;
+        if (src && !src.includes("emoji") && !src.includes("profile_images")) {
+          images.push(src);
+        }
+      });
+    }
+
+    return { text, images, quotedText, author };
+  }
+
   function createIconSvg() {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("width", "18");
@@ -34,7 +102,8 @@
     btn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log("[Dumly] Generate clicked", replyBox);
+      const content = extractPostContent(replyBox);
+      console.log("[Dumly] Extracted post content:", content);
     });
     return btn;
   }
