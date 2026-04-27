@@ -3,26 +3,16 @@
 
   const BUTTON_ATTR = "data-dumly-injected";
 
-  function extractPostContent(editorElement) {
-    let article = editorElement.closest("article");
-
-    if (!article) {
-      article = document.querySelector(
-        '[data-testid="tweet"] article, article[data-testid="tweet"]'
-      );
+  function getLoggedInHandle() {
+    const profileLink = document.querySelector('[data-testid="AppTabBar_Profile_Link"]');
+    if (profileLink) {
+      const href = profileLink.getAttribute("href");
+      if (href) return "@" + href.slice(1);
     }
+    return "";
+  }
 
-    if (!article) {
-      const articles = document.querySelectorAll("article");
-      if (articles.length > 0) {
-        article = articles[0];
-      }
-    }
-
-    if (!article) {
-      return { text: "", images: [], quotedText: "", author: "" };
-    }
-
+  function extractArticleContent(article) {
     let text = "";
     const tweetTextEl = article.querySelector('[data-testid="tweetText"]');
     if (tweetTextEl) {
@@ -71,6 +61,33 @@
     return { text, images, quotedText, author };
   }
 
+  function extractPostContent(editorElement) {
+    const myHandle = getLoggedInHandle();
+    const allArticles = Array.from(document.querySelectorAll("article"));
+
+    if (allArticles.length === 0) {
+      return { thread: [], myHandle };
+    }
+
+    // Find which articles are above the editor in the DOM
+    const editorRect = editorElement.getBoundingClientRect();
+    const threadArticles = allArticles.filter((a) => {
+      return a.getBoundingClientRect().bottom <= editorRect.top + 10;
+    });
+
+    // Take last 5 posts for context
+    const relevant = threadArticles.slice(-5);
+
+    if (relevant.length === 0) {
+      // Fallback: grab the first article on the page
+      relevant.push(allArticles[0]);
+    }
+
+    const thread = relevant.map((article) => extractArticleContent(article));
+
+    return { thread, myHandle };
+  }
+
   function loadSettings() {
     if (!chrome.storage?.sync) {
       return Promise.reject(new Error("Extension was updated — please refresh the page"));
@@ -90,31 +107,43 @@
 
   async function generateReply(postContent, settings) {
     const userParts = [];
+    var myHandle = postContent.myHandle;
+    var thread = postContent.thread;
 
-    let textBlock = "";
-    if (postContent.author) {
-      textBlock += "Post by " + postContent.author + ":\n";
-    }
-    if (postContent.text) {
-      textBlock += postContent.text;
-    }
-    if (postContent.quotedText) {
-      textBlock += "\n\nQuoted tweet: " + postContent.quotedText;
-    }
-    if (!textBlock.trim() && postContent.images.length === 0) {
-      textBlock = "(This post contains media that could not be extracted. Write a general engaging reply.)";
-    }
-
-    if (textBlock.trim()) {
-      userParts.push({ type: "text", text: textBlock.trim() });
-    }
-
-    postContent.images.forEach((url) => {
-      userParts.push({
-        type: "image_url",
-        image_url: { url },
+    if (!thread || thread.length === 0) {
+      userParts.push({ type: "text", text: "(No content could be extracted. Write a general engaging reply.)" });
+    } else if (thread.length === 1) {
+      var post = thread[0];
+      var label = (myHandle && post.author === myHandle) ? "You (" + post.author + ")" : post.author;
+      var textBlock = "";
+      if (label) textBlock += "Post by " + label + ":\n";
+      if (post.text) textBlock += post.text;
+      if (post.quotedText) textBlock += "\n\nQuoted tweet: " + post.quotedText;
+      if (!textBlock.trim() && post.images.length === 0) {
+        textBlock = "(This post contains media that could not be extracted. Write a general engaging reply.)";
+      }
+      if (textBlock.trim()) userParts.push({ type: "text", text: textBlock.trim() });
+      post.images.forEach(function(url) {
+        userParts.push({ type: "image_url", image_url: { url: url } });
       });
-    });
+    } else {
+      var threadText = "Thread context (most recent messages):\n\n";
+      thread.forEach(function(post, i) {
+        var label = (myHandle && post.author === myHandle) ? "You (" + post.author + ")" : post.author;
+        threadText += label + ": " + (post.text || "(media)");
+        if (post.quotedText) threadText += " [quoting: " + post.quotedText + "]";
+        threadText += "\n\n";
+      });
+      threadText += "---\nReply to this last post.";
+      if (myHandle) threadText += " You are " + myHandle + " — continue your voice and position from the thread.";
+      userParts.push({ type: "text", text: threadText.trim() });
+
+      // Include images from the last post only (the one being replied to)
+      var lastPost = thread[thread.length - 1];
+      lastPost.images.forEach(function(url) {
+        userParts.push({ type: "image_url", image_url: { url: url } });
+      });
+    }
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
