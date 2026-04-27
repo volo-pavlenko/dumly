@@ -260,24 +260,29 @@
     return btn;
   }
 
+  function findToolbar(startElement) {
+    let ancestor = startElement.parentElement;
+    while (ancestor && ancestor !== document.body) {
+      const toolbar = ancestor.querySelector('[data-testid="toolBar"]');
+      if (toolbar) return toolbar;
+      ancestor = ancestor.parentElement;
+    }
+    return null;
+  }
+
   function injectButton(editorContainer) {
     if (editorContainer.querySelector("[" + BUTTON_ATTR + "]")) return;
 
-    const toolbarRow = editorContainer.closest('[data-testid="toolBar"]')
-      || editorContainer.parentElement?.querySelector('[role="group"]');
-
     const btn = createDumlyButton(editorContainer);
+    const toolbar = findToolbar(editorContainer);
 
-    if (toolbarRow) {
-      toolbarRow.prepend(btn);
+    if (toolbar) {
+      if (toolbar.querySelector("[" + BUTTON_ATTR + "]")) return;
+      toolbar.prepend(btn);
     } else {
-      const wrapper = editorContainer.closest('[data-testid="tweetTextarea_0_label"]')
-        || editorContainer.parentElement;
-      if (wrapper) {
-        wrapper.style.position = "relative";
-        btn.classList.add("dumly-generate-btn--floating");
-        wrapper.appendChild(btn);
-      }
+      editorContainer.style.position = "relative";
+      btn.classList.add("dumly-generate-btn--floating");
+      editorContainer.appendChild(btn);
     }
   }
 
