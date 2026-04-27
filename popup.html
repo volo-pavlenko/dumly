@@ -14,8 +14,36 @@
   </style>
 </head>
 <body>
-  <h2>Dumly Settings</h2>
-  <p>Settings coming soon.</p>
+  <h2 style="margin-top: 0; font-size: 18px;">Dumly Settings</h2>
+
+  <label for="api-key" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">OpenAI API Key</label>
+  <div style="position: relative; margin-bottom: 12px;">
+    <input id="api-key" type="password" placeholder="sk-..."
+      style="width: 100%; padding: 8px 36px 8px 8px; border: 1px solid #38444d; border-radius: 6px; background: #1e2d3d; color: #e7e9ea; font-size: 14px; box-sizing: border-box;">
+    <button id="toggle-key" type="button"
+      style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #8b98a5; cursor: pointer; font-size: 12px; padding: 4px;">
+      Show
+    </button>
+  </div>
+
+  <label for="model" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">Model</label>
+  <select id="model"
+    style="width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #38444d; border-radius: 6px; background: #1e2d3d; color: #e7e9ea; font-size: 14px; box-sizing: border-box;">
+    <option value="gpt-5.4-mini" selected>gpt-5.4-mini</option>
+    <option value="gpt-5.4">gpt-5.4</option>
+    <option value="gpt-5.5">gpt-5.5</option>
+  </select>
+
+  <label for="persona" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">Persona (system prompt)</label>
+  <textarea id="persona" rows="4" placeholder="Describe the tone and style..."
+    style="width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #38444d; border-radius: 6px; background: #1e2d3d; color: #e7e9ea; font-size: 14px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+
+  <button id="save"
+    style="width: 100%; padding: 10px; background: #1d9bf0; color: white; border: none; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer;">
+    Save
+  </button>
+  <div id="status" style="text-align: center; margin-top: 8px; font-size: 13px; color: #00ba7c; min-height: 20px;"></div>
+
   <script src="popup.js"></script>
 </body>
 </html>
