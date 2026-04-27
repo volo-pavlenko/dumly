@@ -147,12 +147,14 @@
     textbox.focus();
 
     const selection = window.getSelection();
-    selection.selectAllChildren(textbox);
-    selection.collapseToStart();
 
     if (textbox.textContent.length > 0) {
       selection.selectAllChildren(textbox);
+      document.execCommand("delete", false, null);
     }
+
+    selection.selectAllChildren(textbox);
+    selection.collapseToStart();
 
     const inserted = document.execCommand("insertText", false, text);
 
