@@ -72,20 +72,19 @@
   }
 
   function loadSettings() {
-    return new Promise((resolve, reject) => {
-      try {
-        chrome.storage.sync.get(
-          {
-            apiKey: "",
-            model: "gpt-5.4-mini",
-            persona:
-              "You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.",
-          },
-          resolve
-        );
-      } catch (e) {
-        reject(new Error("Extension was updated — please refresh the page"));
-      }
+    if (!chrome.storage?.sync) {
+      return Promise.reject(new Error("Extension was updated — please refresh the page"));
+    }
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(
+        {
+          apiKey: "",
+          model: "gpt-5.4-mini",
+          persona:
+            "You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.",
+        },
+        resolve
+      );
     });
   }
 
