@@ -226,17 +226,18 @@
       e.stopPropagation();
 
       if (btn.disabled || activeGenerations.has(replyBox)) return;
+      activeGenerations.add(replyBox);
 
       const settings = await loadSettings();
 
       if (!settings.apiKey) {
+        activeGenerations.delete(replyBox);
         btn.title = "Set API key in Dumly extension settings";
         showError(btn, "Set API key in extension settings");
         return;
       }
 
       btn.disabled = true;
-      activeGenerations.add(replyBox);
       btn.textContent = "";
       btn.appendChild(createSpinner());
 
@@ -291,8 +292,17 @@
     });
   }
 
+  function cleanupOrphanedButtons() {
+    document.querySelectorAll("[" + BUTTON_ATTR + "]").forEach((btn) => {
+      if (!document.body.contains(btn.closest("article") || btn.parentElement)) {
+        btn.remove();
+      }
+    });
+  }
+
   const observer = new MutationObserver(() => {
     scanAndInject();
+    cleanupOrphanedButtons();
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
