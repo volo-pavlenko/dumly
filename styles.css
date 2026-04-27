@@ -18,8 +18,11 @@
 }
 
 .dumly-generate-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.dumly-generate-btn.dumly-generating svg {
+  animation: dumly-spin 1.5s linear infinite;
 }
 
 .dumly-generate-btn--floating {

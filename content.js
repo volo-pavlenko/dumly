@@ -244,8 +244,7 @@
       }
 
       btn.disabled = true;
-      btn.textContent = "";
-      btn.appendChild(createSpinner());
+      btn.classList.add("dumly-generating");
 
       try {
         const content = extractPostContent(replyBox);
@@ -256,9 +255,8 @@
         showError(btn, err.message.slice(0, 60));
       } finally {
         btn.disabled = false;
+        btn.classList.remove("dumly-generating");
         activeGenerations.delete(replyBox);
-        btn.textContent = "";
-        btn.appendChild(createIconSvg());
         btn.title = "Generate AI reply";
       }
     });
