@@ -362,7 +362,8 @@
 
       if (btn.disabled || activeGenerations.has(replyBox)) return;
       btn.classList.remove("dumly-error");
-      btn.title = "Generate AI reply";
+      var isQuote = isQuoteCompose(replyBox);
+      btn.title = isQuote ? "Generate AI commentary" : "Generate AI reply";
       activeGenerations.add(replyBox);
 
       const settings = await loadSettings();
@@ -379,7 +380,7 @@
 
       try {
         var generatedText;
-        if (isQuoteCompose(replyBox)) {
+        if (isQuote) {
           var quoteContent = extractQuoteContent(replyBox);
           if (!quoteContent) {
             var fallbackContent = extractPostContent(replyBox);
