@@ -290,7 +290,12 @@
       || editorElement;
 
     textbox.focus();
-    document.execCommand("selectAll", false, null);
+
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(textbox);
+    sel.removeAllRanges();
+    sel.addRange(range);
 
     const dt = new DataTransfer();
     dt.setData("text/plain", text);
