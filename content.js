@@ -61,6 +61,18 @@
     return { text, images, quotedText, author };
   }
 
+  function isQuoteCompose(editorContainer) {
+    const dialog = editorContainer.closest('[role="dialog"]');
+    if (!dialog) return false;
+    const quotedPost = dialog.querySelector('[data-testid="quoteTweet"], [data-testid="card.wrapper"]');
+    if (quotedPost) return true;
+    const embeddedLinks = dialog.querySelectorAll('[role="link"][tabindex="0"]');
+    for (const link of embeddedLinks) {
+      if (link.querySelector('[data-testid="tweetText"]')) return true;
+    }
+    return false;
+  }
+
   function extractPostContent(editorElement) {
     const myHandle = getLoggedInHandle();
     const allArticles = Array.from(document.querySelectorAll("article"));
