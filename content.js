@@ -177,18 +177,15 @@
       || editorElement;
 
     textbox.focus();
+    document.execCommand("selectAll", false, null);
 
-    const selection = window.getSelection();
-
-    if (textbox.textContent.length > 0) {
-      selection.selectAllChildren(textbox);
-      document.execCommand("delete", false, null);
-    }
-
-    selection.selectAllChildren(textbox);
-    selection.collapseToStart();
-
-    document.execCommand("insertText", false, text);
+    const dt = new DataTransfer();
+    dt.setData("text/plain", text);
+    textbox.dispatchEvent(new ClipboardEvent("paste", {
+      clipboardData: dt,
+      bubbles: true,
+      cancelable: true,
+    }));
   }
 
   function showError(anchorElement, message) {
