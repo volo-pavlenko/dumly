@@ -134,6 +134,53 @@
     return { text: text, author: author, images: images, nestedQuoteText: nestedQuoteText };
   }
 
+  async function generateQuoteCommentary(quoteContent, settings) {
+    var userParts = [];
+
+    var textBlock = "";
+    if (quoteContent.author) textBlock += "Post being quoted by " + quoteContent.author + ":\n";
+    if (quoteContent.text) textBlock += quoteContent.text;
+    if (quoteContent.nestedQuoteText) textBlock += "\n\nQuoted tweet within: " + quoteContent.nestedQuoteText;
+
+    if (!textBlock.trim() && quoteContent.images.length === 0) {
+      textBlock = "(This post contains media that could not be extracted. Write general engaging commentary.)";
+    }
+
+    if (textBlock.trim()) {
+      textBlock += "\n\nWrite commentary for quoting this post. You are adding your take above the quoted post — not replying to it directly.";
+      userParts.push({ type: "text", text: textBlock.trim() });
+    }
+
+    quoteContent.images.forEach(function(url) {
+      userParts.push({ type: "image_url", image_url: { url: url } });
+    });
+
+    var response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + settings.apiKey,
+      },
+      body: JSON.stringify({
+        model: settings.model,
+        messages: [
+          { role: "system", content: settings.persona },
+          { role: "user", content: userParts },
+        ],
+        max_completion_tokens: 512,
+      }),
+    });
+
+    if (!response.ok) {
+      var err = await response.json().catch(function() { return {}; });
+      var msg = (err.error && err.error.message) ? err.error.message : "API error: " + response.status;
+      throw new Error(msg);
+    }
+
+    var data = await response.json();
+    return data.choices[0].message.content.trim();
+  }
+
   function extractPostContent(editorElement) {
     const myHandle = getLoggedInHandle();
     const allArticles = Array.from(document.querySelectorAll("article"));
