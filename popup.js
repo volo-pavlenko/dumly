@@ -5,6 +5,7 @@ const apiKeyInput = document.getElementById("api-key");
 const toggleKeyBtn = document.getElementById("toggle-key");
 const modelSelect = document.getElementById("model");
 const personaTextarea = document.getElementById("persona");
+const quotePersonaTextarea = document.getElementById("quote-persona");
 const saveBtn = document.getElementById("save");
 const statusDiv = document.getElementById("status");
 
@@ -15,11 +16,12 @@ toggleKeyBtn.addEventListener("click", () => {
 });
 
 chrome.storage.sync.get(
-  { apiKey: "", model: "gpt-5.4-mini", persona: DEFAULT_PERSONA },
+  { apiKey: "", model: "gpt-5.4-mini", persona: DEFAULT_PERSONA, quotePersona: "" },
   (settings) => {
     apiKeyInput.value = settings.apiKey;
     modelSelect.value = settings.model;
     personaTextarea.value = settings.persona;
+    quotePersonaTextarea.value = settings.quotePersona;
   }
 );
 
@@ -28,6 +30,7 @@ saveBtn.addEventListener("click", () => {
     apiKey: apiKeyInput.value.trim(),
     model: modelSelect.value,
     persona: personaTextarea.value.trim() || DEFAULT_PERSONA,
+    quotePersona: quotePersonaTextarea.value.trim(),
   };
   chrome.storage.sync.set(settings, () => {
     statusDiv.textContent = "Saved!";
