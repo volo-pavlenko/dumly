@@ -77,17 +77,17 @@
     const dialog = editorContainer.closest('[role="dialog"]');
     if (!dialog) return null;
 
-    var author = "";
-    var text = "";
-    var images = [];
-    var nestedQuoteText = "";
+    let author = "";
+    let text = "";
+    const images = [];
+    let nestedQuoteText = "";
 
-    var quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
+    let quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
       || dialog.querySelector('[data-testid="card.wrapper"]');
 
     if (!quotedPost) {
-      var links = dialog.querySelectorAll('[role="link"][tabindex="0"]');
-      for (var i = 0; i < links.length; i++) {
+      const links = dialog.querySelectorAll('[role="link"][tabindex="0"]');
+      for (let i = 0; i < links.length; i++) {
         if (links[i].querySelector('[data-testid="tweetText"]')) {
           quotedPost = links[i];
           break;
@@ -97,17 +97,17 @@
 
     if (!quotedPost) return null;
 
-    var tweetTextEl = quotedPost.querySelector('[data-testid="tweetText"]');
+    const tweetTextEl = quotedPost.querySelector('[data-testid="tweetText"]');
     if (tweetTextEl) {
       text = tweetTextEl.innerText;
     }
 
-    var userNameEl = quotedPost.querySelector('[data-testid="User-Name"]');
+    const userNameEl = quotedPost.querySelector('[data-testid="User-Name"]');
     if (userNameEl) {
-      var handleLinks = userNameEl.querySelectorAll("a");
-      var handles = [];
-      handleLinks.forEach(function(link) {
-        var href = link.getAttribute("href");
+      const handleLinks = userNameEl.querySelectorAll("a");
+      const handles = [];
+      handleLinks.forEach((link) => {
+        const href = link.getAttribute("href");
         if (href && href.startsWith("/")) {
           handles.push("@" + href.slice(1));
         }
@@ -115,29 +115,29 @@
       author = handles.length > 0 ? handles[0] : userNameEl.innerText;
     }
 
-    var photoEls = quotedPost.querySelectorAll('[data-testid="tweetPhoto"] img');
-    photoEls.forEach(function(img) {
-      var src = img.src;
+    const photoEls = quotedPost.querySelectorAll('[data-testid="tweetPhoto"] img');
+    photoEls.forEach((img) => {
+      const src = img.src;
       if (src && !src.includes("emoji") && !src.includes("profile_images")) {
         images.push(src);
       }
     });
 
-    var nestedQuote = quotedPost.querySelector('[role="link"][tabindex="0"]');
+    const nestedQuote = quotedPost.querySelector('[role="link"][tabindex="0"]');
     if (nestedQuote) {
-      var nestedTextEl = nestedQuote.querySelector('[data-testid="tweetText"]');
+      const nestedTextEl = nestedQuote.querySelector('[data-testid="tweetText"]');
       if (nestedTextEl) {
         nestedQuoteText = nestedTextEl.innerText;
       }
     }
 
-    return { text: text, author: author, images: images, nestedQuoteText: nestedQuoteText };
+    return { text, author, images, nestedQuoteText };
   }
 
   async function generateQuoteCommentary(quoteContent, settings) {
-    var userParts = [];
+    const userParts = [];
 
-    var textBlock = "";
+    let textBlock = "";
     if (quoteContent.author) textBlock += "Post being quoted by " + quoteContent.author + ":\n";
     if (quoteContent.text) textBlock += quoteContent.text;
     if (quoteContent.nestedQuoteText) textBlock += "\n\nQuoted tweet within: " + quoteContent.nestedQuoteText;
@@ -151,11 +151,11 @@
       userParts.push({ type: "text", text: textBlock.trim() });
     }
 
-    quoteContent.images.forEach(function(url) {
+    quoteContent.images.forEach((url) => {
       userParts.push({ type: "image_url", image_url: { url: url } });
     });
 
-    var response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -172,12 +172,12 @@
     });
 
     if (!response.ok) {
-      var err = await response.json().catch(function() { return {}; });
-      var msg = (err.error && err.error.message) ? err.error.message : "API error: " + response.status;
+      const err = await response.json().catch(() => ({}));
+      const msg = err.error?.message || "API error: " + response.status;
       throw new Error(msg);
     }
 
-    var data = await response.json();
+    const data = await response.json();
     return data.choices[0].message.content.trim();
   }
 
@@ -362,7 +362,7 @@
 
       if (btn.disabled || activeGenerations.has(replyBox)) return;
       btn.classList.remove("dumly-error");
-      var isQuote = isQuoteCompose(replyBox);
+      const isQuote = isQuoteCompose(replyBox);
       btn.title = isQuote ? "Generate AI commentary" : "Generate AI reply";
       activeGenerations.add(replyBox);
 
@@ -379,17 +379,17 @@
       btn.classList.add("dumly-generating");
 
       try {
-        var generatedText;
+        let generatedText;
         if (isQuote) {
-          var quoteContent = extractQuoteContent(replyBox);
+          const quoteContent = extractQuoteContent(replyBox);
           if (!quoteContent) {
-            var fallbackContent = extractPostContent(replyBox);
+            const fallbackContent = extractPostContent(replyBox);
             generatedText = await generateReply(fallbackContent, settings);
           } else {
             generatedText = await generateQuoteCommentary(quoteContent, settings);
           }
         } else {
-          var replyContent = extractPostContent(replyBox);
+          const replyContent = extractPostContent(replyBox);
           generatedText = await generateReply(replyContent, settings);
         }
         insertReply(replyBox, generatedText);
