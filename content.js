@@ -64,12 +64,10 @@
   function isQuoteCompose(editorContainer) {
     const dialog = editorContainer.closest('[role="dialog"]');
     if (!dialog) return false;
+    const attachments = dialog.querySelector('[data-testid="attachments"]');
+    if (attachments && attachments.querySelector('[data-testid="tweetText"]')) return true;
     const quotedPost = dialog.querySelector('[data-testid="quoteTweet"], [data-testid="card.wrapper"]');
     if (quotedPost) return true;
-    const embeddedLinks = dialog.querySelectorAll('[role="link"][tabindex="0"]');
-    for (const link of embeddedLinks) {
-      if (link.querySelector('[data-testid="tweetText"]')) return true;
-    }
     return false;
   }
 
@@ -82,17 +80,11 @@
     const images = [];
     let nestedQuoteText = "";
 
-    let quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
-      || dialog.querySelector('[data-testid="card.wrapper"]');
+    let quotedPost = dialog.querySelector('[data-testid="attachments"]');
 
-    if (!quotedPost) {
-      const links = dialog.querySelectorAll('[role="link"][tabindex="0"]');
-      for (let i = 0; i < links.length; i++) {
-        if (links[i].querySelector('[data-testid="tweetText"]')) {
-          quotedPost = links[i];
-          break;
-        }
-      }
+    if (!quotedPost || !quotedPost.querySelector('[data-testid="tweetText"]')) {
+      quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
+        || dialog.querySelector('[data-testid="card.wrapper"]');
     }
 
     if (!quotedPost) return null;
