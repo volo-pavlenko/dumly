@@ -34,8 +34,12 @@
     <option value="gpt-5.5">gpt-5.5</option>
   </select>
 
-  <label for="persona" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">Persona (system prompt)</label>
-  <textarea id="persona" rows="4" placeholder="Describe the tone and style..."
+  <label for="persona" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">Reply persona (system prompt)</label>
+  <textarea id="persona" rows="4" placeholder="Describe the tone and style for replies..."
+    style="width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #38444d; border-radius: 6px; background: #1e2d3d; color: #e7e9ea; font-size: 14px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+
+  <label for="quote-persona" style="display: block; margin-bottom: 4px; font-size: 13px; color: #8b98a5;">Quote persona (system prompt)</label>
+  <textarea id="quote-persona" rows="4" placeholder="Describe the tone and style for quote tweets..."
     style="width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #38444d; border-radius: 6px; background: #1e2d3d; color: #e7e9ea; font-size: 14px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
 
   <button id="save"

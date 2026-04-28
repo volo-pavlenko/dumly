@@ -156,7 +156,7 @@
       body: JSON.stringify({
         model: settings.model,
         messages: [
-          { role: "system", content: settings.persona },
+          { role: "system", content: settings.quotePersona || settings.persona },
           { role: "user", content: userParts },
         ],
         max_completion_tokens: 512,
@@ -211,6 +211,7 @@
           model: "gpt-5.4-mini",
           persona:
             "You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.",
+          quotePersona: "",
         },
         resolve
       );
