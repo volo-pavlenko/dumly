@@ -73,6 +73,67 @@
     return false;
   }
 
+  function extractQuoteContent(editorContainer) {
+    const dialog = editorContainer.closest('[role="dialog"]');
+    if (!dialog) return null;
+
+    var author = "";
+    var text = "";
+    var images = [];
+    var nestedQuoteText = "";
+
+    var quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
+      || dialog.querySelector('[data-testid="card.wrapper"]');
+
+    if (!quotedPost) {
+      var links = dialog.querySelectorAll('[role="link"][tabindex="0"]');
+      for (var i = 0; i < links.length; i++) {
+        if (links[i].querySelector('[data-testid="tweetText"]')) {
+          quotedPost = links[i];
+          break;
+        }
+      }
+    }
+
+    if (!quotedPost) return null;
+
+    var tweetTextEl = quotedPost.querySelector('[data-testid="tweetText"]');
+    if (tweetTextEl) {
+      text = tweetTextEl.innerText;
+    }
+
+    var userNameEl = quotedPost.querySelector('[data-testid="User-Name"]');
+    if (userNameEl) {
+      var handleLinks = userNameEl.querySelectorAll("a");
+      var handles = [];
+      handleLinks.forEach(function(link) {
+        var href = link.getAttribute("href");
+        if (href && href.startsWith("/")) {
+          handles.push("@" + href.slice(1));
+        }
+      });
+      author = handles.length > 0 ? handles[0] : userNameEl.innerText;
+    }
+
+    var photoEls = quotedPost.querySelectorAll('[data-testid="tweetPhoto"] img');
+    photoEls.forEach(function(img) {
+      var src = img.src;
+      if (src && !src.includes("emoji") && !src.includes("profile_images")) {
+        images.push(src);
+      }
+    });
+
+    var nestedQuote = quotedPost.querySelector('[role="link"][tabindex="0"]');
+    if (nestedQuote) {
+      var nestedTextEl = nestedQuote.querySelector('[data-testid="tweetText"]');
+      if (nestedTextEl) {
+        nestedQuoteText = nestedTextEl.innerText;
+      }
+    }
+
+    return { text: text, author: author, images: images, nestedQuoteText: nestedQuoteText };
+  }
+
   function extractPostContent(editorElement) {
     const myHandle = getLoggedInHandle();
     const allArticles = Array.from(document.querySelectorAll("article"));
