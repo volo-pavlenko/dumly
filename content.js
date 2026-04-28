@@ -413,15 +413,21 @@
     if (editorContainer.querySelector("[" + BUTTON_ATTR + "]")) return;
 
     const btn = createDumlyButton(editorContainer);
-    const toolbar = findToolbar(editorContainer);
 
-    if (toolbar) {
-      if (toolbar.querySelector("[" + BUTTON_ATTR + "]")) return;
-      toolbar.prepend(btn);
-    } else {
+    if (isQuoteCompose(editorContainer)) {
       editorContainer.style.position = "relative";
       btn.classList.add("dumly-generate-btn--floating");
       editorContainer.appendChild(btn);
+    } else {
+      const toolbar = findToolbar(editorContainer);
+      if (toolbar) {
+        if (toolbar.querySelector("[" + BUTTON_ATTR + "]")) return;
+        toolbar.prepend(btn);
+      } else {
+        editorContainer.style.position = "relative";
+        btn.classList.add("dumly-generate-btn--floating");
+        editorContainer.appendChild(btn);
+      }
     }
   }
 
