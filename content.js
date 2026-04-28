@@ -378,9 +378,20 @@
       btn.classList.add("dumly-generating");
 
       try {
-        const content = extractPostContent(replyBox);
-        const reply = await generateReply(content, settings);
-        insertReply(replyBox, reply);
+        var generatedText;
+        if (isQuoteCompose(replyBox)) {
+          var quoteContent = extractQuoteContent(replyBox);
+          if (!quoteContent) {
+            var fallbackContent = extractPostContent(replyBox);
+            generatedText = await generateReply(fallbackContent, settings);
+          } else {
+            generatedText = await generateQuoteCommentary(quoteContent, settings);
+          }
+        } else {
+          var replyContent = extractPostContent(replyBox);
+          generatedText = await generateReply(replyContent, settings);
+        }
+        insertReply(replyBox, generatedText);
       } catch (err) {
         console.error("[Dumly] Generation failed:", err);
         btn.classList.add("dumly-error");
