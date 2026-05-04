@@ -17,6 +17,7 @@
         "lib/prompt.js",
         "lib/session.js",
         "lib/repo.js",
+        "lib/retrieval.js",
         "lib/post-observer.js",
         "lib/card.js",
         "content.js"
