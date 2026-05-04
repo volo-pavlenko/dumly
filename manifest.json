@@ -11,6 +11,7 @@
       "js": [
         "lib/similarity.js",
         "lib/scraping.js",
+        "lib/openai.js",
         "content.js"
       ],
       "css": ["styles.css"],

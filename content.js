@@ -24,30 +24,10 @@
       userParts.push({ type: "image_url", image_url: { url: url } });
     });
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + settings.apiKey,
-      },
-      body: JSON.stringify({
-        model: settings.model,
-        messages: [
-          { role: "system", content: settings.quotePersona || settings.persona },
-          { role: "user", content: userParts },
-        ],
-        max_completion_tokens: 512,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const msg = err.error?.message || "API error: " + response.status;
-      throw new Error(msg);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
+    return await window.Dumly.openai.chat([
+      { role: "system", content: settings.quotePersona || settings.persona },
+      { role: "user", content: userParts },
+    ], settings);
   }
 
   function loadSettings() {
@@ -108,30 +88,10 @@
       });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + settings.apiKey,
-      },
-      body: JSON.stringify({
-        model: settings.model,
-        messages: [
-          { role: "system", content: settings.persona },
-          { role: "user", content: userParts },
-        ],
-        max_completion_tokens: 512,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const msg = err.error?.message || "API error: " + response.status;
-      throw new Error(msg);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content.trim();
+    return await window.Dumly.openai.chat([
+      { role: "system", content: settings.persona },
+      { role: "user", content: userParts },
+    ], settings);
   }
 
   function insertReply(editorElement, text) {
