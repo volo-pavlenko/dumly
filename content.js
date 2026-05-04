@@ -81,13 +81,18 @@
         const avoidList = (await window.Dumly.session.getShownSuggestions(session.id))
           .map((c) => c.suggestionText);
 
+        const memories = await window.Dumly.retrieval.selectCandidates({
+          ctx, mode: session.mode, limit: 10, maxChars: 3500,
+        });
+        const negatives = await window.Dumly.repo.listActiveNegatives(session.mode, 20);
+
         const messages = window.Dumly.prompt.buildGeneration({
           mode: session.mode,
           source: ctx,
           tone,
           profile: useProfile ? profile : emptyProfile(),
-          memories: [],   // Phase 3 fills this
-          negatives: [],  // Phase 3 fills this
+          memories,
+          negatives,
           avoidList,
         });
         const text = await window.Dumly.openai.chat(messages, settings);
@@ -97,6 +102,11 @@
           suggestionText: text, tone, attemptNumber: attempt, status: 'shown',
         });
         cardHandle.setSuggestion(text, currentCandidate.id);
+
+        const hintFlagged = memories.some(({ memory }) =>
+          window.Dumly.similarity.jaccardSimilarity(text, memory.finalUserText) >= 0.82
+        );
+        cardHandle.setFooterHint(hintFlagged ? '(similar to a recent reply)' : '');
       } catch (err) {
         console.error('[Dumly] generate failed:', err);
         cardHandle.setState('error', (err.message || 'error').slice(0, 80));
