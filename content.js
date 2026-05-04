@@ -3,6 +3,8 @@
 
   const BUTTON_ATTR = "data-dumly-injected";
 
+  window.Dumly.settings.runMigrationV2().catch(() => {});
+
   async function generateQuoteCommentary(quoteContent, settings) {
     const userParts = [];
 
@@ -31,21 +33,14 @@
   }
 
   function loadSettings() {
-    if (!chrome.storage?.sync) {
-      return Promise.reject(new Error("Extension was updated — please refresh the page"));
-    }
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(
-        {
-          apiKey: "",
-          model: "gpt-5.4-mini",
-          persona:
-            "You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.",
-          quotePersona: "",
-        },
-        resolve
-      );
-    });
+    return Promise.all([
+      window.Dumly.settings.loadSettings(),
+      new Promise((resolve) => chrome.storage.sync.get({ persona: '', quotePersona: '' }, resolve)),
+    ]).then(([s, legacy]) => ({
+      ...s,
+      persona: legacy.persona || 'You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.',
+      quotePersona: legacy.quotePersona || '',
+    }));
   }
 
   async function generateReply(postContent, settings) {
