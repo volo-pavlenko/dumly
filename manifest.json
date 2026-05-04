@@ -9,10 +9,15 @@
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": [
+        "lib/db.js",
         "lib/similarity.js",
+        "lib/settings.js",
         "lib/scraping.js",
         "lib/openai.js",
-        "lib/settings.js",
+        "lib/prompt.js",
+        "lib/session.js",
+        "lib/repo.js",
+        "lib/post-observer.js",
         "content.js"
       ],
       "css": ["styles.css"],
