@@ -3,129 +3,6 @@
 
   const BUTTON_ATTR = "data-dumly-injected";
 
-  function getLoggedInHandle() {
-    const profileLink = document.querySelector('[data-testid="AppTabBar_Profile_Link"]');
-    if (profileLink) {
-      const href = profileLink.getAttribute("href");
-      if (href) return "@" + href.slice(1);
-    }
-    return "";
-  }
-
-  function extractArticleContent(article) {
-    let text = "";
-    const tweetTextEl = article.querySelector('[data-testid="tweetText"]');
-    if (tweetTextEl) {
-      text = tweetTextEl.innerText;
-    }
-
-    let author = "";
-    const userNameEl = article.querySelector('[data-testid="User-Name"]');
-    if (userNameEl) {
-      const links = userNameEl.querySelectorAll("a");
-      const handles = [];
-      links.forEach((link) => {
-        const href = link.getAttribute("href");
-        if (href && href.startsWith("/")) {
-          handles.push("@" + href.slice(1));
-        }
-      });
-      author = handles.length > 0 ? handles[0] : userNameEl.innerText;
-    }
-
-    const images = [];
-    const photoEls = article.querySelectorAll('[data-testid="tweetPhoto"] img');
-    photoEls.forEach((img) => {
-      const src = img.src;
-      if (src && !src.includes("emoji") && !src.includes("profile_images")) {
-        images.push(src);
-      }
-    });
-
-    let quotedText = "";
-    const quoteContainer = article.querySelector('[role="link"][tabindex="0"]');
-    if (quoteContainer) {
-      const quoteTextEl = quoteContainer.querySelector('[data-testid="tweetText"]');
-      if (quoteTextEl) {
-        quotedText = quoteTextEl.innerText;
-      }
-      const quotePhotos = quoteContainer.querySelectorAll("img");
-      quotePhotos.forEach((img) => {
-        const src = img.src;
-        if (src && !src.includes("emoji") && !src.includes("profile_images")) {
-          images.push(src);
-        }
-      });
-    }
-
-    return { text, images, quotedText, author };
-  }
-
-  function isQuoteCompose(editorContainer) {
-    const dialog = editorContainer.closest('[role="dialog"]');
-    if (!dialog) return false;
-    const attachments = dialog.querySelector('[data-testid="attachments"]');
-    if (attachments && attachments.querySelector('[data-testid="tweetText"]')) return true;
-    const quotedPost = dialog.querySelector('[data-testid="quoteTweet"], [data-testid="card.wrapper"]');
-    if (quotedPost) return true;
-    return false;
-  }
-
-  function extractQuoteContent(editorContainer) {
-    const dialog = editorContainer.closest('[role="dialog"]');
-    if (!dialog) return null;
-
-    let author = "";
-    let text = "";
-    const images = [];
-    let nestedQuoteText = "";
-
-    let quotedPost = dialog.querySelector('[data-testid="attachments"]');
-
-    if (!quotedPost || !quotedPost.querySelector('[data-testid="tweetText"]')) {
-      quotedPost = dialog.querySelector('[data-testid="quoteTweet"]')
-        || dialog.querySelector('[data-testid="card.wrapper"]');
-    }
-
-    if (!quotedPost) return null;
-
-    const tweetTextEl = quotedPost.querySelector('[data-testid="tweetText"]');
-    if (tweetTextEl) {
-      text = tweetTextEl.innerText;
-    }
-
-    const userNameEl = quotedPost.querySelector('[data-testid="User-Name"]');
-    if (userNameEl) {
-      const handleLinks = userNameEl.querySelectorAll("a");
-      const handles = [];
-      handleLinks.forEach((link) => {
-        const href = link.getAttribute("href");
-        if (href && href.startsWith("/")) {
-          handles.push("@" + href.slice(1));
-        }
-      });
-      author = handles.length > 0 ? handles[0] : userNameEl.innerText;
-    }
-
-    const photoEls = quotedPost.querySelectorAll('[data-testid="tweetPhoto"] img');
-    photoEls.forEach((img) => {
-      const src = img.src;
-      if (src && !src.includes("emoji") && !src.includes("profile_images")) {
-        images.push(src);
-      }
-    });
-
-    const nestedQuote = quotedPost.querySelector('[role="link"][tabindex="0"]');
-    if (nestedQuote) {
-      const nestedTextEl = nestedQuote.querySelector('[data-testid="tweetText"]');
-      if (nestedTextEl) {
-        nestedQuoteText = nestedTextEl.innerText;
-      }
-    }
-
-    return { text, author, images, nestedQuoteText };
-  }
-
   async function generateQuoteCommentary(quoteContent, settings) {
     const userParts = [];
 
@@ -171,33 +48,6 @@
 
     const data = await response.json();
     return data.choices[0].message.content.trim();
-  }
-
-  function extractPostContent(editorElement) {
-    const myHandle = getLoggedInHandle();
-    const allArticles = Array.from(document.querySelectorAll("article"));
-
-    if (allArticles.length === 0) {
-      return { thread: [], myHandle };
-    }
-
-    // Find which articles are above the editor in the DOM
-    const editorRect = editorElement.getBoundingClientRect();
-    const threadArticles = allArticles.filter((a) => {
-      return a.getBoundingClientRect().bottom <= editorRect.top + 10;
-    });
-
-    // Take last 5 posts for context
-    const relevant = threadArticles.slice(-5);
-
-    if (relevant.length === 0) {
-      // Fallback: grab the first article on the page
-      relevant.push(allArticles[0]);
-    }
-
-    const thread = relevant.map((article) => extractArticleContent(article));
-
-    return { thread, myHandle };
   }
 
   function loadSettings() {
@@ -357,7 +207,7 @@
 
       if (btn.disabled || activeGenerations.has(replyBox)) return;
       btn.classList.remove("dumly-error");
-      const isQuote = isQuoteCompose(replyBox);
+      const isQuote = window.Dumly.scraping.isQuoteCompose(replyBox);
       btn.title = isQuote ? "Generate AI commentary" : "Generate AI reply";
       activeGenerations.add(replyBox);
 
@@ -376,15 +226,15 @@
       try {
         let generatedText;
         if (isQuote) {
-          const quoteContent = extractQuoteContent(replyBox);
+          const quoteContent = window.Dumly.scraping.extractQuoteContent(replyBox);
           if (!quoteContent) {
-            const fallbackContent = extractPostContent(replyBox);
+            const fallbackContent = window.Dumly.scraping.extractPostContent(replyBox);
             generatedText = await generateReply(fallbackContent, settings);
           } else {
             generatedText = await generateQuoteCommentary(quoteContent, settings);
           }
         } else {
-          const replyContent = extractPostContent(replyBox);
+          const replyContent = window.Dumly.scraping.extractPostContent(replyBox);
           generatedText = await generateReply(replyContent, settings);
         }
         insertReply(replyBox, generatedText);
@@ -417,7 +267,7 @@
 
     const btn = createDumlyButton(editorContainer);
 
-    if (isQuoteCompose(editorContainer)) {
+    if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
       editorContainer.style.position = "relative";
       btn.classList.add("dumly-generate-btn--floating");
       editorContainer.appendChild(btn);
