@@ -6,6 +6,29 @@
 
   window.Dumly.settings.runMigrationV2().catch(() => {});
 
+  (async function scheduleCleanup() {
+    try {
+      const local = await new Promise((r) => chrome.storage.local.get({ lastCleanupAt: 0 }, r));
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      if (Date.now() - (local.lastCleanupAt || 0) > ONE_DAY) {
+        await window.Dumly.repo.runCleanup();
+        await new Promise((r) => chrome.storage.local.set({ lastCleanupAt: Date.now() }, r));
+      }
+    } catch (e) {
+      console.warn('[Dumly] cleanup failed:', e);
+    }
+  })();
+
+  async function maybeCleanup() {
+    try {
+      const cnt = await window.Dumly.db.count('acceptedMemories');
+      if (cnt > window.Dumly.repo.LIMITS.acceptedMax) {
+        await window.Dumly.repo.runCleanup();
+        await new Promise((r) => chrome.storage.local.set({ lastCleanupAt: Date.now() }, r));
+      }
+    } catch {}
+  }
+
   function showError(anchorElement, message) {
     const existing = anchorElement.parentElement?.querySelector('.dumly-error-toast');
     if (existing) existing.remove();
@@ -164,6 +187,7 @@
           wasEdited: false,
           toneTags: [currentCandidate.tone],
         });
+        maybeCleanup();
         await window.Dumly.repo.saveInsertionRecord({
           sessionId: session.id,
           candidateId: currentCandidate.id,
@@ -196,6 +220,7 @@
           wasEdited: false,
           toneTags: [currentCandidate.tone],
         });
+        maybeCleanup();
       }
     }
 
@@ -215,6 +240,7 @@
         wasEdited: false,
         toneTags: [currentCandidate.tone],
       });
+      maybeCleanup();
     }
 
     async function runReject(reason) {
