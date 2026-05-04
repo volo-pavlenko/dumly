@@ -1,207 +1,253 @@
 (function () {
-  "use strict";
+  'use strict';
 
-  const BUTTON_ATTR = "data-dumly-injected";
+  const BUTTON_ATTR = 'data-dumly-injected';
+  const activeGenerations = new WeakSet();
 
   window.Dumly.settings.runMigrationV2().catch(() => {});
 
-  async function generateQuoteCommentary(quoteContent, settings) {
-    const userParts = [];
-
-    let textBlock = "";
-    if (quoteContent.author) textBlock += "Post being quoted by " + quoteContent.author + ":\n";
-    if (quoteContent.text) textBlock += quoteContent.text;
-    if (quoteContent.nestedQuoteText) textBlock += "\n\nQuoted tweet within: " + quoteContent.nestedQuoteText;
-
-    if (!textBlock.trim() && quoteContent.images.length === 0) {
-      textBlock = "(This post contains media that could not be extracted. Write general engaging commentary.)";
+  function showError(anchorElement, message) {
+    const existing = anchorElement.parentElement?.querySelector('.dumly-error-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'dumly-error-toast';
+    toast.textContent = message;
+    const parent = anchorElement.parentElement;
+    if (parent) {
+      parent.style.position = 'relative';
+      parent.appendChild(toast);
     }
-
-    if (textBlock.trim()) {
-      textBlock += "\n\nWrite commentary for quoting this post. You are adding your take above the quoted post — not replying to it directly.";
-      userParts.push({ type: "text", text: textBlock.trim() });
-    }
-
-    quoteContent.images.forEach((url) => {
-      userParts.push({ type: "image_url", image_url: { url: url } });
-    });
-
-    return await window.Dumly.openai.chat([
-      { role: "system", content: settings.quotePersona || settings.persona },
-      { role: "user", content: userParts },
-    ], settings);
-  }
-
-  function loadSettings() {
-    return Promise.all([
-      window.Dumly.settings.loadSettings(),
-      new Promise((resolve) => chrome.storage.sync.get({ persona: '', quotePersona: '' }, resolve)),
-    ]).then(([s, legacy]) => ({
-      ...s,
-      persona: legacy.persona || 'You are a witty, concise X/Twitter user. Write a reply to the following post. Keep it under 280 characters unless the context warrants more. Be natural — no hashtags, no emojis unless appropriate.',
-      quotePersona: legacy.quotePersona || '',
-    }));
-  }
-
-  async function generateReply(postContent, settings) {
-    const userParts = [];
-    var myHandle = postContent.myHandle;
-    var thread = postContent.thread;
-
-    if (!thread || thread.length === 0) {
-      userParts.push({ type: "text", text: "(No content could be extracted. Write a general engaging reply.)" });
-    } else if (thread.length === 1) {
-      var post = thread[0];
-      var label = (myHandle && post.author === myHandle) ? "You (" + post.author + ")" : post.author;
-      var textBlock = "";
-      if (label) textBlock += "Post by " + label + ":\n";
-      if (post.text) textBlock += post.text;
-      if (post.quotedText) textBlock += "\n\nQuoted tweet: " + post.quotedText;
-      if (!textBlock.trim() && post.images.length === 0) {
-        textBlock = "(This post contains media that could not be extracted. Write a general engaging reply.)";
-      }
-      if (textBlock.trim()) userParts.push({ type: "text", text: textBlock.trim() });
-      post.images.forEach(function(url) {
-        userParts.push({ type: "image_url", image_url: { url: url } });
-      });
-    } else {
-      var threadText = "Thread context (most recent messages):\n\n";
-      thread.forEach(function(post, i) {
-        var label = (myHandle && post.author === myHandle) ? "You (" + post.author + ")" : post.author;
-        threadText += label + ": " + (post.text || "(media)");
-        if (post.quotedText) threadText += " [quoting: " + post.quotedText + "]";
-        threadText += "\n\n";
-      });
-      threadText += "---\nReply to this last post.";
-      if (myHandle) threadText += " You are " + myHandle + " — continue your voice and position from the thread.";
-      userParts.push({ type: "text", text: threadText.trim() });
-
-      // Include images from the last post only (the one being replied to)
-      var lastPost = thread[thread.length - 1];
-      lastPost.images.forEach(function(url) {
-        userParts.push({ type: "image_url", image_url: { url: url } });
-      });
-    }
-
-    return await window.Dumly.openai.chat([
-      { role: "system", content: settings.persona },
-      { role: "user", content: userParts },
-    ], settings);
+    setTimeout(() => toast.remove(), 3000);
   }
 
   function insertReply(editorElement, text) {
     const textbox = editorElement.querySelector('[role="textbox"]')
       || editorElement.closest('[role="textbox"]')
       || editorElement;
-
     textbox.focus();
-    document.execCommand("selectAll", false, null);
-
+    document.execCommand('selectAll', false, null);
     requestAnimationFrame(() => {
       const dt = new DataTransfer();
-      dt.setData("text/plain", text);
-      textbox.dispatchEvent(new ClipboardEvent("paste", {
-        clipboardData: dt,
-        bubbles: true,
-        cancelable: true,
+      dt.setData('text/plain', text);
+      textbox.dispatchEvent(new ClipboardEvent('paste', {
+        clipboardData: dt, bubbles: true, cancelable: true,
       }));
     });
   }
 
-  function showError(anchorElement, message) {
-    const existing = anchorElement.parentElement?.querySelector(".dumly-error-toast");
-    if (existing) existing.remove();
-
-    const toast = document.createElement("div");
-    toast.className = "dumly-error-toast";
-    toast.textContent = message;
-
-    const parent = anchorElement.parentElement;
-    if (parent) {
-      parent.style.position = "relative";
-      parent.appendChild(toast);
-    }
-
-    setTimeout(() => toast.remove(), 3000);
-  }
-
   function createIconSvg() {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "18");
-    svg.setAttribute("height", "18");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "2");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-    const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-    polygon.setAttribute("points", "13 2 3 14 12 14 11 22 21 10 12 10 13 2");
-    svg.appendChild(polygon);
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '18'); svg.setAttribute('height', '18');
+    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    p.setAttribute('points', '13 2 3 14 12 14 11 22 21 10 12 10 13 2');
+    svg.appendChild(p);
     return svg;
   }
 
-  function createSpinner() {
-    const spinner = document.createElement("div");
-    spinner.className = "dumly-spinner";
-    return spinner;
+  async function openCardForEditor(editorContainer, anchorBtn) {
+    if (window.Dumly.card.isMounted()) window.Dumly.card.unmount();
+
+    const ctx = window.Dumly.scraping.buildExtractedContext(editorContainer);
+    if (!ctx) {
+      showError(anchorBtn, 'Could not extract post content');
+      return;
+    }
+
+    const key = window.Dumly.session.sourceKey(ctx);
+    const session = await window.Dumly.session.getOrCreate(key, ctx.mode, ctx);
+
+    let currentCandidate = null;
+    let cardHandle = null;
+
+    function emptyProfile() {
+      return { bio: '', tone: '', preferredAngles: [], avoidPatterns: [] };
+    }
+
+    async function runGenerate(tone, regenerate) {
+      try {
+        cardHandle.setState('loading');
+        if (regenerate) await window.Dumly.session.markIgnored(session.id);
+
+        const settings = await window.Dumly.settings.loadSettings();
+        if (!settings.apiKey) {
+          cardHandle.setState('error', 'Set API key in extension settings');
+          return;
+        }
+        const profile = await window.Dumly.settings.loadProfile();
+        const useProfile = settings.memorySettings.useProfile !== false;
+        const avoidList = (await window.Dumly.session.getShownSuggestions(session.id))
+          .map((c) => c.suggestionText);
+
+        const messages = window.Dumly.prompt.buildGeneration({
+          mode: session.mode,
+          source: ctx,
+          tone,
+          profile: useProfile ? profile : emptyProfile(),
+          memories: [],   // Phase 3 fills this
+          negatives: [],  // Phase 3 fills this
+          avoidList,
+        });
+        const text = await window.Dumly.openai.chat(messages, settings);
+        const attempt = avoidList.length + 1;
+        currentCandidate = await window.Dumly.repo.saveCandidate({
+          sessionId: session.id, mode: session.mode,
+          suggestionText: text, tone, attemptNumber: attempt, status: 'shown',
+        });
+        cardHandle.setSuggestion(text, currentCandidate.id);
+      } catch (err) {
+        console.error('[Dumly] generate failed:', err);
+        cardHandle.setState('error', (err.message || 'error').slice(0, 80));
+      }
+    }
+
+    async function runRewrite(targetTone) {
+      if (!currentCandidate) return;
+      try {
+        cardHandle.setState('loading');
+        const settings = await window.Dumly.settings.loadSettings();
+        if (!settings.apiKey) {
+          cardHandle.setState('error', 'Set API key in extension settings');
+          return;
+        }
+        const profile = await window.Dumly.settings.loadProfile();
+        const useProfile = settings.memorySettings.useProfile !== false;
+        const messages = window.Dumly.prompt.buildRewrite({
+          currentSuggestionText: currentCandidate.suggestionText,
+          targetTone,
+          profile: useProfile ? profile : emptyProfile(),
+          mode: session.mode,
+          source: ctx,
+        });
+        const text = await window.Dumly.openai.chat(messages, settings);
+        const attempt = (currentCandidate.attemptNumber || 0) + 1;
+        currentCandidate = await window.Dumly.repo.saveCandidate({
+          sessionId: session.id, mode: session.mode,
+          suggestionText: text, tone: targetTone, attemptNumber: attempt, status: 'shown',
+        });
+        cardHandle.setSuggestion(text, currentCandidate.id);
+      } catch (err) {
+        console.error('[Dumly] rewrite failed:', err);
+        cardHandle.setState('error', (err.message || 'error').slice(0, 80));
+      }
+    }
+
+    async function runUse() {
+      if (!currentCandidate) return;
+      insertReply(editorContainer, currentCandidate.suggestionText);
+      const settings = await window.Dumly.settings.loadSettings();
+      if (settings.memorySettings.learnFromUse !== false) {
+        await window.Dumly.repo.markCandidate(currentCandidate.id, 'used');
+        const accepted = await window.Dumly.repo.saveAccepted({
+          sessionId: session.id,
+          candidateId: currentCandidate.id,
+          mode: session.mode,
+          sourcePostId: ctx.sourcePostId,
+          sourcePostText: ctx.sourcePostText,
+          sourcePostAuthorHandle: ctx.sourcePostAuthorHandle,
+          sourcePostUrl: ctx.sourcePostUrl,
+          originalSuggestionText: currentCandidate.suggestionText,
+          finalUserText: currentCandidate.suggestionText,
+          acceptedVia: 'use_this',
+          wasEdited: false,
+          toneTags: [currentCandidate.tone],
+        });
+        await window.Dumly.repo.saveInsertionRecord({
+          sessionId: session.id,
+          candidateId: currentCandidate.id,
+          insertedText: currentCandidate.suggestionText,
+        });
+        window.Dumly.postObserver.watch(editorContainer, currentCandidate.suggestionText, accepted.id);
+      }
+      window.Dumly.card.unmount();
+    }
+
+    async function runCopy() {
+      if (!currentCandidate) return;
+      try {
+        await navigator.clipboard.writeText(currentCandidate.suggestionText);
+      } catch {}
+      const settings = await window.Dumly.settings.loadSettings();
+      if (settings.memorySettings.learnFromCopy !== false) {
+        await window.Dumly.repo.markCandidate(currentCandidate.id, 'copied');
+        await window.Dumly.repo.saveAccepted({
+          sessionId: session.id,
+          candidateId: currentCandidate.id,
+          mode: session.mode,
+          sourcePostId: ctx.sourcePostId,
+          sourcePostText: ctx.sourcePostText,
+          sourcePostAuthorHandle: ctx.sourcePostAuthorHandle,
+          sourcePostUrl: ctx.sourcePostUrl,
+          originalSuggestionText: currentCandidate.suggestionText,
+          finalUserText: currentCandidate.suggestionText,
+          acceptedVia: 'copy',
+          wasEdited: false,
+          toneTags: [currentCandidate.tone],
+        });
+      }
+    }
+
+    async function runSave() {
+      if (!currentCandidate) return;
+      await window.Dumly.repo.saveAccepted({
+        sessionId: session.id,
+        candidateId: currentCandidate.id,
+        mode: session.mode,
+        sourcePostId: ctx.sourcePostId,
+        sourcePostText: ctx.sourcePostText,
+        sourcePostAuthorHandle: ctx.sourcePostAuthorHandle,
+        sourcePostUrl: ctx.sourcePostUrl,
+        originalSuggestionText: currentCandidate.suggestionText,
+        finalUserText: currentCandidate.suggestionText,
+        acceptedVia: 'manual_save',
+        wasEdited: false,
+        toneTags: [currentCandidate.tone],
+      });
+    }
+
+    async function runReject(reason) {
+      if (!currentCandidate) return;
+      const settings = await window.Dumly.settings.loadSettings();
+      if (settings.memorySettings.rememberNegatives !== false) {
+        await window.Dumly.repo.markCandidate(currentCandidate.id, 'rejected');
+        await window.Dumly.repo.saveNegative({
+          mode: session.mode,
+          sourcePostText: ctx.sourcePostText,
+          rejectedText: currentCandidate.suggestionText,
+          reason,
+        });
+      }
+      await runGenerate('default', true);
+    }
+
+    cardHandle = window.Dumly.card.mount(editorContainer, anchorBtn, { mode: session.mode }, {
+      onUse: runUse,
+      onRegenerate: () => runGenerate(currentCandidate?.tone || 'default', true),
+      onTone: runRewrite,
+      onCopy: runCopy,
+      onSave: runSave,
+      onReject: runReject,
+      onClose: () => {},
+    });
+
+    runGenerate('default', false);
   }
 
-  const activeGenerations = new WeakSet();
-
   function createDumlyButton(replyBox) {
-    const btn = document.createElement("button");
-    btn.setAttribute(BUTTON_ATTR, "true");
-    btn.className = "dumly-generate-btn";
-    btn.title = "Generate AI reply";
+    const btn = document.createElement('button');
+    btn.setAttribute(BUTTON_ATTR, 'true');
+    btn.className = 'dumly-generate-btn';
+    btn.title = 'Generate AI suggestion';
     btn.appendChild(createIconSvg());
 
-    btn.addEventListener("click", async (e) => {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-
-      if (btn.disabled || activeGenerations.has(replyBox)) return;
-      btn.classList.remove("dumly-error");
-      const isQuote = window.Dumly.scraping.isQuoteCompose(replyBox);
-      btn.title = isQuote ? "Generate AI commentary" : "Generate AI reply";
+      if (activeGenerations.has(replyBox)) return;
       activeGenerations.add(replyBox);
-
-      const settings = await loadSettings();
-
-      if (!settings.apiKey) {
-        activeGenerations.delete(replyBox);
-        btn.title = "Set API key in Dumly extension settings";
-        showError(btn, "Set API key in extension settings");
-        return;
-      }
-
-      btn.disabled = true;
-      btn.classList.add("dumly-generating");
-
-      try {
-        let generatedText;
-        if (isQuote) {
-          const quoteContent = window.Dumly.scraping.extractQuoteContent(replyBox);
-          if (!quoteContent) {
-            const fallbackContent = window.Dumly.scraping.extractPostContent(replyBox);
-            generatedText = await generateReply(fallbackContent, settings);
-          } else {
-            generatedText = await generateQuoteCommentary(quoteContent, settings);
-          }
-        } else {
-          const replyContent = window.Dumly.scraping.extractPostContent(replyBox);
-          generatedText = await generateReply(replyContent, settings);
-        }
-        insertReply(replyBox, generatedText);
-      } catch (err) {
-        console.error("[Dumly] Generation failed:", err);
-        btn.classList.add("dumly-error");
-        btn.title = err.message.slice(0, 60);
-      } finally {
-        btn.disabled = false;
-        btn.classList.remove("dumly-generating");
-        activeGenerations.delete(replyBox);
-      }
+      openCardForEditor(replyBox, btn).finally(() => activeGenerations.delete(replyBox));
     });
 
     return btn;
@@ -218,22 +264,20 @@
   }
 
   function injectButton(editorContainer) {
-    if (editorContainer.querySelector("[" + BUTTON_ATTR + "]")) return;
-
+    if (editorContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
     const btn = createDumlyButton(editorContainer);
-
     if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
-      editorContainer.style.position = "relative";
-      btn.classList.add("dumly-generate-btn--floating");
+      editorContainer.style.position = 'relative';
+      btn.classList.add('dumly-generate-btn--floating');
       editorContainer.appendChild(btn);
     } else {
       const toolbar = findToolbar(editorContainer);
       if (toolbar) {
-        if (toolbar.querySelector("[" + BUTTON_ATTR + "]")) return;
+        if (toolbar.querySelector('[' + BUTTON_ATTR + ']')) return;
         toolbar.prepend(btn);
       } else {
-        editorContainer.style.position = "relative";
-        btn.classList.add("dumly-generate-btn--floating");
+        editorContainer.style.position = 'relative';
+        btn.classList.add('dumly-generate-btn--floating');
         editorContainer.appendChild(btn);
       }
     }
@@ -251,8 +295,8 @@
   }
 
   function cleanupOrphanedButtons() {
-    document.querySelectorAll("[" + BUTTON_ATTR + "]").forEach((btn) => {
-      if (!document.body.contains(btn.closest("article") || btn.parentElement)) {
+    document.querySelectorAll('[' + BUTTON_ATTR + ']').forEach((btn) => {
+      if (!document.body.contains(btn.closest('article') || btn.parentElement)) {
         btn.remove();
       }
     });
@@ -262,9 +306,8 @@
     scanAndInject();
     cleanupOrphanedButtons();
   });
-
   observer.observe(document.body, { childList: true, subtree: true });
   scanAndInject();
 
-  console.log("[Dumly] Content script loaded");
+  console.log('[Dumly] Content script loaded (v2)');
 })();
