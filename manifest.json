@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Dumly — AI Reply Generator for X",
   "description": "Generate AI-powered replies on X.com using your own OpenAI API key",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://api.openai.com/*"],
   "content_scripts": [
