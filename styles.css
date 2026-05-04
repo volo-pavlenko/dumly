@@ -68,3 +68,70 @@
   from { opacity: 0; transform: translateX(-50%) translateY(4px); }
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+.dumly-card {
+  position: fixed;
+  width: 360px;
+  max-height: 320px;
+  background: #15202b;
+  color: #e7e9ea;
+  border: 1px solid #38444d;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dumly-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #263341;
+  position: relative;
+}
+.dumly-card-label { font-size: 13px; color: #8b98a5; }
+.dumly-card-overflow {
+  background: none; border: none; color: #8b98a5; cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 2px 6px;
+}
+.dumly-card-overflow-menu {
+  position: absolute; top: 32px; right: 8px; background: #1e2d3d;
+  border: 1px solid #38444d; border-radius: 8px; z-index: 10001;
+  display: flex; flex-direction: column; min-width: 180px;
+}
+.dumly-card-overflow-menu button {
+  background: none; border: none; color: #e7e9ea;
+  padding: 8px 12px; text-align: left; cursor: pointer; font-size: 13px;
+}
+.dumly-card-overflow-menu button:hover { background: #2a3b4d; }
+.dumly-card-body {
+  padding: 12px; font-size: 14px; line-height: 1.4;
+  white-space: pre-wrap; overflow-y: auto; flex: 1; min-height: 80px;
+}
+.dumly-card-body.is-loading { color: #8b98a5; font-style: italic; }
+.dumly-card-body.is-error { color: #f4212e; }
+.dumly-card-tone {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px; border-top: 1px solid #263341; font-size: 12px; color: #8b98a5;
+}
+.dumly-card-tone button {
+  background: #1e2d3d; color: #e7e9ea; border: 1px solid #38444d;
+  border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 12px;
+}
+.dumly-card-tone button.is-active { background: #1d9bf0; color: white; border-color: #1d9bf0; }
+.dumly-card-actions {
+  display: flex; gap: 8px; padding: 8px 12px;
+  border-top: 1px solid #263341;
+}
+.dumly-card-actions button {
+  flex: 1; padding: 8px; border-radius: 20px; border: 1px solid #38444d;
+  background: #1e2d3d; color: #e7e9ea; cursor: pointer; font-weight: 600; font-size: 13px;
+}
+.dumly-card-actions .dumly-card-use { background: #1d9bf0; border-color: #1d9bf0; color: white; }
+.dumly-card-footer {
+  padding: 6px 12px; font-size: 11px; color: #8b98a5;
+  border-top: 1px solid #263341; text-align: center;
+}

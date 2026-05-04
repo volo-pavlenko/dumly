@@ -18,6 +18,7 @@
         "lib/session.js",
         "lib/repo.js",
         "lib/post-observer.js",
+        "lib/card.js",
         "content.js"
       ],
       "css": ["styles.css"],
