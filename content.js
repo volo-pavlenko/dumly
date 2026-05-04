@@ -58,15 +58,23 @@
     });
   }
 
-  function createIconSvg() {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '18'); svg.setAttribute('height', '18');
-    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '2');
-    svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
-    const p = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    p.setAttribute('points', '13 2 3 14 12 14 11 22 21 10 12 10 13 2');
-    svg.appendChild(p);
+  function createSparkleSvg() {
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'dumly-generate-btn-sparkle');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', 'M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z');
+    const dot1 = document.createElementNS(SVG_NS, 'circle');
+    dot1.setAttribute('cx', '19'); dot1.setAttribute('cy', '5'); dot1.setAttribute('r', '1');
+    const dot2 = document.createElementNS(SVG_NS, 'circle');
+    dot2.setAttribute('cx', '5'); dot2.setAttribute('cy', '19'); dot2.setAttribute('r', '1');
+    svg.append(path, dot1, dot2);
     return svg;
   }
 
@@ -87,6 +95,11 @@
 
     function emptyProfile() {
       return { bio: '', tone: '', preferredAngles: [], avoidPatterns: [] };
+    }
+
+    function hasProfileContent(p) {
+      if (!p) return false;
+      return !!(p.bio || p.tone || p.preferredAngles?.length || p.avoidPatterns?.length);
     }
 
     async function runGenerate(tone, regenerate) {
@@ -126,10 +139,14 @@
         });
         cardHandle.setSuggestion(text, currentCandidate.id);
 
-        const hintFlagged = memories.some(({ memory }) =>
+        const repetitionFlagged = memories.some(({ memory }) =>
           window.Dumly.similarity.jaccardSimilarity(text, memory.finalUserText) >= 0.82
         );
-        cardHandle.setFooterHint(hintFlagged ? '(similar to a recent reply)' : '');
+        cardHandle.setUsing({
+          profileActive: useProfile && hasProfileContent(profile),
+          memoryCount: memories.length,
+          repetitionFlagged,
+        });
       } catch (err) {
         console.error('[Dumly] generate failed:', err);
         cardHandle.setState('error', (err.message || 'error').slice(0, 80));
@@ -266,6 +283,11 @@
       onSave: runSave,
       onReject: runReject,
       onClose: () => {},
+      onOpenSettings: () => {
+        try {
+          window.open(chrome.runtime.getURL('popup.html'), '_blank');
+        } catch {}
+      },
     });
 
     runGenerate('default', false);
@@ -276,7 +298,8 @@
     btn.setAttribute(BUTTON_ATTR, 'true');
     btn.className = 'dumly-generate-btn';
     btn.title = 'Generate AI suggestion';
-    btn.appendChild(createIconSvg());
+    btn.appendChild(document.createTextNode('Dumly'));
+    btn.appendChild(createSparkleSvg());
 
     btn.addEventListener('click', (e) => {
       e.preventDefault();
