@@ -343,20 +343,25 @@
       return;
     }
 
-    // Reply/inline composer: drop Dumly immediately left of the Post/Reply button.
+    // Reply/inline composer: Dumly sits as a sibling of the Reply wrapper in
+    // the composer row, so it picks up the row's natural spacing and does NOT
+    // inherit the Reply wrapper's disabled-state opacity.
     const postBtn = findPostButton(editorContainer);
-    if (postBtn && postBtn.parentElement) {
-      const postContainer = postBtn.parentElement;
-      if (postContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
-      postContainer.insertBefore(btn, postBtn);
-      return;
+    if (postBtn) {
+      const postWrapper = postBtn.parentElement;                    // wraps Reply only
+      const rowContainer = postWrapper?.parentElement;              // row with toolbar + reply wrapper
+      if (rowContainer && rowContainer.contains(postWrapper)) {
+        if (rowContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
+        rowContainer.insertBefore(btn, postWrapper);
+        return;
+      }
     }
 
-    // Fallback: prepend to toolbar if Post button isn't resolvable yet.
+    // Fallback: append to toolbar (natural right-hand spot, before Reply).
     const toolbar = findToolbar(editorContainer);
     if (toolbar) {
       if (toolbar.querySelector('[' + BUTTON_ATTR + ']')) return;
-      toolbar.prepend(btn);
+      toolbar.appendChild(btn);
       return;
     }
 
