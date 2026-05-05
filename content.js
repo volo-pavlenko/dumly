@@ -352,24 +352,27 @@
       return;
     }
 
-    // Reply/inline composer: Dumly sits as a sibling of the Reply wrapper in
-    // the composer row, so it picks up the row's natural spacing and does NOT
-    // inherit the Reply wrapper's disabled-state opacity.
-    const postBtn = findPostButton(editorContainer);
-    if (postBtn) {
-      const postWrapper = postBtn.parentElement;                    // wraps Reply only
-      const rowContainer = postWrapper?.parentElement;              // row with toolbar + reply wrapper
-      if (rowContainer && rowContainer.contains(postWrapper)) {
-        rowContainer.insertBefore(btn, postWrapper);
-        return;
-      }
-    }
-
-    // Fallback: append to toolbar (natural right-hand spot, before Reply).
+    // Reply / inline / home composer: append Dumly to the toolbar. The
+    // toolbar is a horizontal flex container of controls and sits immediately
+    // left of the Post/Reply button in both composer variants, so appending
+    // places Dumly as the rightmost toolbar child — exactly between the
+    // media icons and the Post button.
     const toolbar = findToolbar(editorContainer);
     if (toolbar) {
       toolbar.appendChild(btn);
       return;
+    }
+
+    // Fallback: if no toolbar (rare), insert as a sibling just before the
+    // Post button's wrapper in the row container.
+    const postBtn = findPostButton(editorContainer);
+    if (postBtn) {
+      const postWrapper = postBtn.parentElement;
+      const rowContainer = postWrapper?.parentElement;
+      if (rowContainer && rowContainer.contains(postWrapper)) {
+        rowContainer.insertBefore(btn, postWrapper);
+        return;
+      }
     }
 
     // Last resort: float it inside the editor.
