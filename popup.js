@@ -89,19 +89,13 @@
   qs('#clear-memory').addEventListener('click', async () => {
     const choice = prompt('Type "all", "accepted", or "negative" to clear:');
     if (!choice) return;
-    const db = await window.Dumly.db.open();
     const stores = choice === 'all' ? ['acceptedMemories', 'negativeMemories']
                  : choice === 'accepted' ? ['acceptedMemories']
                  : choice === 'negative' ? ['negativeMemories']
                  : null;
     if (!stores) return status('memory-status', 'Cancelled.');
     for (const name of stores) {
-      await new Promise((resolve, reject) => {
-        const tx = db.transaction(name, 'readwrite');
-        const req = tx.objectStore(name).clear();
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-      });
+      await window.Dumly.db.clearStore(name);
     }
     status('memory-status', 'Cleared.');
     qs('#accepted-count').textContent = await window.Dumly.db.count('acceptedMemories');

@@ -5,19 +5,19 @@
   "version": "2.0.0",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://api.openai.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": [
-        "lib/db.js",
+        "lib/rpc-client.js",
         "lib/similarity.js",
         "lib/settings.js",
         "lib/scraping.js",
         "lib/openai.js",
         "lib/prompt.js",
-        "lib/session.js",
-        "lib/repo.js",
-        "lib/retrieval.js",
         "lib/post-observer.js",
         "lib/card.js",
         "content.js"
