@@ -394,7 +394,14 @@
 
   function injectButton(editorContainer) {
     const scope = findComposerScope(editorContainer);
-    const existing = scope.querySelector('[' + BUTTON_ATTR + ']');
+    let buttons = Array.from(scope.querySelectorAll('[' + BUTTON_ATTR + ']'));
+    // When scoping to document.body (inline composer), exclude buttons that
+    // actually belong to a modal composer — those live under a [role="dialog"].
+    if (scope === document.body) {
+      buttons = buttons.filter((b) => !b.closest('[role="dialog"]'));
+    }
+    const existing = buttons.length ? buttons[buttons.length - 1] : null;
+    for (let i = 0; i < buttons.length - 1; i++) buttons[i].remove();
     if (existing) {
       placeButton(existing, editorContainer, { initial: false });
       return;
@@ -422,10 +429,23 @@
     });
   }
 
-  const observer = new MutationObserver(() => {
-    scanAndInject();
-    cleanupOrphanedButtons();
-  });
+  let scanScheduled = false;
+  function scheduleScan() {
+    if (scanScheduled) return;
+    scanScheduled = true;
+    requestAnimationFrame(() => {
+      scanScheduled = false;
+      if (!chrome?.runtime?.id) {
+        observer.disconnect();
+        document.querySelectorAll('[' + BUTTON_ATTR + ']').forEach((b) => b.remove());
+        return;
+      }
+      scanAndInject();
+      cleanupOrphanedButtons();
+    });
+  }
+
+  const observer = new MutationObserver(scheduleScan);
   observer.observe(document.body, { childList: true, subtree: true });
   scanAndInject();
 
