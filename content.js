@@ -333,8 +333,17 @@
     return null;
   }
 
+  function findComposerScope(editorContainer) {
+    // Walk up to the nearest dialog (modal composer) or body (inline composer).
+    // The Dumly button lives outside the editor, so dedup must check a scope
+    // that contains the whole composer row.
+    return editorContainer.closest('[role="dialog"]') || document.body;
+  }
+
   function injectButton(editorContainer) {
-    if (editorContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
+    const scope = findComposerScope(editorContainer);
+    // Already present anywhere in this composer scope? Bail.
+    if (scope.querySelector('[' + BUTTON_ATTR + ']')) return;
     const btn = createDumlyButton(editorContainer);
     if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
       editorContainer.style.position = 'relative';
@@ -351,7 +360,6 @@
       const postWrapper = postBtn.parentElement;                    // wraps Reply only
       const rowContainer = postWrapper?.parentElement;              // row with toolbar + reply wrapper
       if (rowContainer && rowContainer.contains(postWrapper)) {
-        if (rowContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
         rowContainer.insertBefore(btn, postWrapper);
         return;
       }
@@ -360,7 +368,6 @@
     // Fallback: append to toolbar (natural right-hand spot, before Reply).
     const toolbar = findToolbar(editorContainer);
     if (toolbar) {
-      if (toolbar.querySelector('[' + BUTTON_ATTR + ']')) return;
       toolbar.appendChild(btn);
       return;
     }
