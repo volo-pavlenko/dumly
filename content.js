@@ -352,44 +352,27 @@
       return;
     }
 
-    // x.com lays the reply composer out differently depending on state:
-    //   - Collapsed: one row -> [toolbar ...][Reply wrapper]
-    //   - Active/expanded: two rows -> [toolbar] / [...spacer][Reply wrapper]
-    // In the collapsed case, appending to the toolbar puts Dumly just left
-    // of Reply. In the expanded case, the toolbar is on a different row,
-    // so appending there floats Dumly to the far right of the upper row.
-    //
-    // Heuristic: if the Post button is NOT a descendant of the toolbar's
-    // parent, they're on different rows -> insert Dumly before the Post
-    // wrapper. Otherwise, append to the toolbar.
-    const toolbar = findToolbar(editorContainer);
+    // The Post/Reply button lives inside a wrapper that is a direct child
+    // of [data-testid="toolBar"], sibling to the media-icons container.
+    // Insert Dumly as the left sibling of that wrapper so both stay on the
+    // same flex row regardless of whether the composer is collapsed or
+    // expanded. Falls back to the row container above the wrapper if the
+    // structure differs.
     const postBtn = findPostButton(editorContainer);
-
-    if (postBtn && toolbar) {
+    if (postBtn) {
       const postWrapper = postBtn.parentElement;
-      const sameRow = toolbar.parentElement && toolbar.parentElement.contains(postWrapper);
-      if (!sameRow) {
-        // Two-row layout: drop Dumly as the left sibling of the Reply wrapper.
-        const rowContainer = postWrapper?.parentElement;
-        if (rowContainer && rowContainer.contains(postWrapper)) {
-          rowContainer.insertBefore(btn, postWrapper);
-          return;
-        }
+      const wrapperParent = postWrapper?.parentElement;
+      if (wrapperParent && wrapperParent.contains(postWrapper)) {
+        wrapperParent.insertBefore(btn, postWrapper);
+        return;
       }
     }
 
+    // Fallback: no Post button found — append to toolbar.
+    const toolbar = findToolbar(editorContainer);
     if (toolbar) {
       toolbar.appendChild(btn);
       return;
-    }
-
-    if (postBtn) {
-      const postWrapper = postBtn.parentElement;
-      const rowContainer = postWrapper?.parentElement;
-      if (rowContainer && rowContainer.contains(postWrapper)) {
-        rowContainer.insertBefore(btn, postWrapper);
-        return;
-      }
     }
 
     // Last resort: float it inside the editor.
