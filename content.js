@@ -322,6 +322,17 @@
     return null;
   }
 
+  function findPostButton(startElement) {
+    // Walk up looking for the composer row that contains the Post/Reply button.
+    let ancestor = startElement.parentElement;
+    while (ancestor && ancestor !== document.body) {
+      const postBtn = ancestor.querySelector('[data-testid="tweetButtonInline"], [data-testid="tweetButton"]');
+      if (postBtn) return postBtn;
+      ancestor = ancestor.parentElement;
+    }
+    return null;
+  }
+
   function injectButton(editorContainer) {
     if (editorContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
     const btn = createDumlyButton(editorContainer);
@@ -329,17 +340,30 @@
       editorContainer.style.position = 'relative';
       btn.classList.add('dumly-generate-btn--floating');
       editorContainer.appendChild(btn);
-    } else {
-      const toolbar = findToolbar(editorContainer);
-      if (toolbar) {
-        if (toolbar.querySelector('[' + BUTTON_ATTR + ']')) return;
-        toolbar.prepend(btn);
-      } else {
-        editorContainer.style.position = 'relative';
-        btn.classList.add('dumly-generate-btn--floating');
-        editorContainer.appendChild(btn);
-      }
+      return;
     }
+
+    // Reply/inline composer: drop Dumly immediately left of the Post/Reply button.
+    const postBtn = findPostButton(editorContainer);
+    if (postBtn && postBtn.parentElement) {
+      const postContainer = postBtn.parentElement;
+      if (postContainer.querySelector('[' + BUTTON_ATTR + ']')) return;
+      postContainer.insertBefore(btn, postBtn);
+      return;
+    }
+
+    // Fallback: prepend to toolbar if Post button isn't resolvable yet.
+    const toolbar = findToolbar(editorContainer);
+    if (toolbar) {
+      if (toolbar.querySelector('[' + BUTTON_ATTR + ']')) return;
+      toolbar.prepend(btn);
+      return;
+    }
+
+    // Last resort: float it inside the editor.
+    editorContainer.style.position = 'relative';
+    btn.classList.add('dumly-generate-btn--floating');
+    editorContainer.appendChild(btn);
   }
 
   function scanAndInject() {
