@@ -352,20 +352,37 @@
       return;
     }
 
-    // Reply / inline / home composer: append Dumly to the toolbar. The
-    // toolbar is a horizontal flex container of controls and sits immediately
-    // left of the Post/Reply button in both composer variants, so appending
-    // places Dumly as the rightmost toolbar child — exactly between the
-    // media icons and the Post button.
+    // x.com lays the reply composer out differently depending on state:
+    //   - Collapsed: one row -> [toolbar ...][Reply wrapper]
+    //   - Active/expanded: two rows -> [toolbar] / [...spacer][Reply wrapper]
+    // In the collapsed case, appending to the toolbar puts Dumly just left
+    // of Reply. In the expanded case, the toolbar is on a different row,
+    // so appending there floats Dumly to the far right of the upper row.
+    //
+    // Heuristic: if the Post button is NOT a descendant of the toolbar's
+    // parent, they're on different rows -> insert Dumly before the Post
+    // wrapper. Otherwise, append to the toolbar.
     const toolbar = findToolbar(editorContainer);
+    const postBtn = findPostButton(editorContainer);
+
+    if (postBtn && toolbar) {
+      const postWrapper = postBtn.parentElement;
+      const sameRow = toolbar.parentElement && toolbar.parentElement.contains(postWrapper);
+      if (!sameRow) {
+        // Two-row layout: drop Dumly as the left sibling of the Reply wrapper.
+        const rowContainer = postWrapper?.parentElement;
+        if (rowContainer && rowContainer.contains(postWrapper)) {
+          rowContainer.insertBefore(btn, postWrapper);
+          return;
+        }
+      }
+    }
+
     if (toolbar) {
       toolbar.appendChild(btn);
       return;
     }
 
-    // Fallback: if no toolbar (rare), insert as a sibling just before the
-    // Post button's wrapper in the row container.
-    const postBtn = findPostButton(editorContainer);
     if (postBtn) {
       const postWrapper = postBtn.parentElement;
       const rowContainer = postWrapper?.parentElement;
