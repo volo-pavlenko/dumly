@@ -4,6 +4,7 @@
 importScripts(
   'lib/db.js',
   'lib/similarity.js',
+  'lib/scoring.js',
   'lib/repo.js',
   'lib/session.js',
   'lib/retrieval.js'
