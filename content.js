@@ -340,11 +340,11 @@
     return editorContainer.closest('[role="dialog"]') || document.body;
   }
 
-  function placeButton(btn, editorContainer) {
+  function placeButton(btn, editorContainer, { initial }) {
     if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
       editorContainer.style.position = 'relative';
       btn.classList.add('dumly-generate-btn--floating');
-      editorContainer.appendChild(btn);
+      if (btn.parentElement !== editorContainer) editorContainer.appendChild(btn);
       return true;
     }
 
@@ -362,7 +362,15 @@
       }
     }
 
-    // Fallback: no Post button found — append to toolbar.
+    // If the button already has a home and Reply isn't resolvable right now
+    // (e.g. composer just reset after posting), leave it alone. Moving it
+    // into the toolbar fallback causes visible layout jitter and x.com will
+    // re-mount Reply momentarily anyway — the next scan will relocate.
+    if (!initial && btn.parentElement && document.body.contains(btn)) {
+      return true;
+    }
+
+    // First-time placement with no Reply button: append to toolbar.
     const toolbar = findToolbar(editorContainer);
     if (toolbar) {
       if (btn.parentElement !== toolbar) toolbar.appendChild(btn);
@@ -380,12 +388,11 @@
     const scope = findComposerScope(editorContainer);
     const existing = scope.querySelector('[' + BUTTON_ATTR + ']');
     if (existing) {
-      // Re-place if x.com remounted the Reply container (e.g. on focus/expand).
-      placeButton(existing, editorContainer);
+      placeButton(existing, editorContainer, { initial: false });
       return;
     }
     const btn = createDumlyButton(editorContainer);
-    placeButton(btn, editorContainer);
+    placeButton(btn, editorContainer, { initial: true });
   }
 
   function scanAndInject() {
