@@ -340,45 +340,52 @@
     return editorContainer.closest('[role="dialog"]') || document.body;
   }
 
-  function injectButton(editorContainer) {
-    const scope = findComposerScope(editorContainer);
-    // Already present anywhere in this composer scope? Bail.
-    if (scope.querySelector('[' + BUTTON_ATTR + ']')) return;
-    const btn = createDumlyButton(editorContainer);
+  function placeButton(btn, editorContainer) {
     if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
       editorContainer.style.position = 'relative';
       btn.classList.add('dumly-generate-btn--floating');
       editorContainer.appendChild(btn);
-      return;
+      return true;
     }
 
-    // The Post/Reply button lives inside a wrapper that is a direct child
-    // of [data-testid="toolBar"], sibling to the media-icons container.
-    // Insert Dumly as the left sibling of that wrapper so both stay on the
-    // same flex row regardless of whether the composer is collapsed or
-    // expanded. Falls back to the row container above the wrapper if the
-    // structure differs.
+    // Post/Reply button's wrapper is the target: insert Dumly as its left
+    // sibling so both share a flex container.
     const postBtn = findPostButton(editorContainer);
     if (postBtn) {
       const postWrapper = postBtn.parentElement;
       const wrapperParent = postWrapper?.parentElement;
       if (wrapperParent && wrapperParent.contains(postWrapper)) {
-        wrapperParent.insertBefore(btn, postWrapper);
-        return;
+        if (btn.parentElement !== wrapperParent || btn.nextSibling !== postWrapper) {
+          wrapperParent.insertBefore(btn, postWrapper);
+        }
+        return true;
       }
     }
 
     // Fallback: no Post button found — append to toolbar.
     const toolbar = findToolbar(editorContainer);
     if (toolbar) {
-      toolbar.appendChild(btn);
-      return;
+      if (btn.parentElement !== toolbar) toolbar.appendChild(btn);
+      return true;
     }
 
     // Last resort: float it inside the editor.
     editorContainer.style.position = 'relative';
     btn.classList.add('dumly-generate-btn--floating');
-    editorContainer.appendChild(btn);
+    if (btn.parentElement !== editorContainer) editorContainer.appendChild(btn);
+    return true;
+  }
+
+  function injectButton(editorContainer) {
+    const scope = findComposerScope(editorContainer);
+    const existing = scope.querySelector('[' + BUTTON_ATTR + ']');
+    if (existing) {
+      // Re-place if x.com remounted the Reply container (e.g. on focus/expand).
+      placeButton(existing, editorContainer);
+      return;
+    }
+    const btn = createDumlyButton(editorContainer);
+    placeButton(btn, editorContainer);
   }
 
   function scanAndInject() {
