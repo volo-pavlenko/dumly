@@ -340,6 +340,10 @@
     return editorContainer.closest('[role="dialog"]') || document.body;
   }
 
+  function clearFloating(btn) {
+    btn.classList.remove('dumly-generate-btn--floating');
+  }
+
   function placeButton(btn, editorContainer, { initial }) {
     if (window.Dumly.scraping.isQuoteCompose(editorContainer)) {
       editorContainer.style.position = 'relative';
@@ -347,6 +351,11 @@
       if (btn.parentElement !== editorContainer) editorContainer.appendChild(btn);
       return true;
     }
+
+    // Non-quote composer: strip any stale floating state left over from a
+    // previous placement path (e.g. a brief quote-compose misidentification
+    // during a composer remount).
+    clearFloating(btn);
 
     // Post/Reply button's wrapper is the target: insert Dumly as its left
     // sibling so both share a flex container.
@@ -363,9 +372,8 @@
     }
 
     // If the button already has a home and Reply isn't resolvable right now
-    // (e.g. composer just reset after posting), leave it alone. Moving it
-    // into the toolbar fallback causes visible layout jitter and x.com will
-    // re-mount Reply momentarily anyway — the next scan will relocate.
+    // (e.g. composer just reset after posting), leave it alone. The next
+    // scan will find Reply and relocate.
     if (!initial && btn.parentElement && document.body.contains(btn)) {
       return true;
     }
