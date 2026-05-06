@@ -202,6 +202,33 @@
   color: #4a4fee;
 }
 
+.dumly-card-topic {
+  padding: 0 16px 10px 16px;
+}
+
+.dumly-card-topic-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #e6e6ef;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.3;
+  padding: 9px 11px;
+  outline: none;
+  font-family: inherit;
+}
+
+.dumly-card-topic-input::placeholder {
+  color: #94a3b8;
+}
+
+.dumly-card-topic-input:focus {
+  border-color: #4a4fee;
+  box-shadow: 0 0 0 3px rgba(74, 79, 238, 0.12);
+}
+
 .dumly-card-body-wrap {
   padding: 0 16px;
 }
@@ -216,7 +243,7 @@
   color: #1e293b;
   white-space: pre-wrap;
   overflow-y: auto;
-  max-height: 200px;
+  max-height: 170px;
   min-height: 80px;
 }
 
@@ -258,6 +285,18 @@
   border-color: #d9dbf7;
 }
 
+.dumly-card-actions button:disabled,
+.dumly-card-tone-row button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+
+.dumly-card-actions button:disabled:hover,
+.dumly-card-tone-row button:disabled:hover {
+  background: #ffffff;
+  border-color: #e6e6ef;
+}
+
 .dumly-card-actions .dumly-card-use {
   background: #4a4fee;
   border-color: #4a4fee;
@@ -270,7 +309,37 @@
   border-color: #3e43db;
 }
 
+.dumly-card-actions .dumly-card-use:disabled,
+.dumly-card-actions .dumly-card-use:disabled:hover {
+  background: #ffffff;
+  border-color: #e6e6ef;
+  color: #0f172a;
+}
+
 .dumly-card-actions .dumly-card-regenerate { flex: 1; }
+
+.dumly-card:not(.has-suggestion) .dumly-card-use {
+  flex: 0 0 auto;
+}
+
+.dumly-card:not(.has-suggestion) .dumly-card-regenerate {
+  background: #4a4fee;
+  border-color: #4a4fee;
+  color: #ffffff;
+  flex: 1.4;
+}
+
+.dumly-card:not(.has-suggestion) .dumly-card-regenerate:hover {
+  background: #3e43db;
+  border-color: #3e43db;
+}
+
+.dumly-card.is-generating .dumly-card-regenerate,
+.dumly-card.is-generating .dumly-card-regenerate:hover {
+  background: #ffffff;
+  border-color: #e6e6ef;
+  color: #0f172a;
+}
 
 .dumly-card-actions .dumly-card-overflow-trigger {
   width: 40px;

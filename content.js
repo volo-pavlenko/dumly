@@ -105,7 +105,12 @@
     async function runGenerate(tone, regenerate) {
       try {
         cardHandle.setState('loading');
-        if (regenerate) await window.Dumly.session.markIgnored(session.id);
+        if (regenerate) {
+          if (currentCandidate?.memoryIdsUsed?.length) {
+            await window.Dumly.repo.markMemoriesUnhelpful(currentCandidate.memoryIdsUsed);
+          }
+          await window.Dumly.session.markIgnored(session.id);
+        }
 
         const settings = await window.Dumly.settings.loadSettings();
         if (!settings.apiKey) {
@@ -113,29 +118,50 @@
           return;
         }
         const profile = await window.Dumly.settings.loadProfile();
+        const styleProfile = await window.Dumly.settings.loadStyleProfile();
         const useProfile = settings.memorySettings.useProfile !== false;
-        const avoidList = (await window.Dumly.session.getShownSuggestions(session.id))
-          .map((c) => c.suggestionText);
+        const sessionCandidates = await window.Dumly.repo.getSessionCandidates({
+          sessionId: session.id, limit: 30,
+        });
+        const sessionAngles = sessionCandidates
+          .map((c) => c.angleSummary || c.suggestionText || c.text)
+          .filter(Boolean)
+          .slice(0, 10);
 
         const memories = await window.Dumly.retrieval.selectCandidates({
-          ctx, mode: session.mode, limit: 10, maxChars: 3500,
+          ctx, mode: session.mode, limit: 4, maxChars: 1800,
         });
-        const negatives = await window.Dumly.repo.listActiveNegatives(session.mode, 20);
+        const topicTags = ctx.keywords || [];
+        const negatives = await window.Dumly.repo.getRecentNegativeMemories({
+          mode: session.mode,
+          topicTags,
+          authorHandle: ctx.sourcePostAuthorHandle,
+          limit: 5,
+        });
+        const memoryIdsUsed = memories.map((m) => m.memory.id);
+        const negativeMemoryIdsUsed = negatives.map((n) => n.id);
 
         const messages = window.Dumly.prompt.buildGeneration({
           mode: session.mode,
           source: ctx,
           tone,
           profile: useProfile ? profile : emptyProfile(),
-          memories,
-          negatives,
-          avoidList,
+          memoryContext: {
+            styleProfile,
+            examples: memories.map((m) => m.memory),
+            avoidRules: negatives,
+            sessionAngles,
+          },
+          topic: cardHandle.getTopic(),
         });
         const text = await window.Dumly.openai.chat(messages, settings);
-        const attempt = avoidList.length + 1;
+        const attempt = sessionCandidates.length + 1;
         currentCandidate = await window.Dumly.repo.saveCandidate({
           sessionId: session.id, mode: session.mode,
           suggestionText: text, tone, attemptNumber: attempt, status: 'shown',
+          memoryIdsUsed, negativeMemoryIdsUsed,
+          sourceTextHash: window.Dumly.session.sourceKey(ctx),
+          topicTags,
         });
         cardHandle.setSuggestion(text, currentCandidate.id);
 
@@ -176,6 +202,9 @@
         currentCandidate = await window.Dumly.repo.saveCandidate({
           sessionId: session.id, mode: session.mode,
           suggestionText: text, tone: targetTone, attemptNumber: attempt, status: 'shown',
+          memoryIdsUsed: currentCandidate.memoryIdsUsed || [],
+          negativeMemoryIdsUsed: currentCandidate.negativeMemoryIdsUsed || [],
+          sourceTextHash: currentCandidate.sourceTextHash,
         });
         cardHandle.setSuggestion(text, currentCandidate.id);
       } catch (err) {
@@ -190,6 +219,7 @@
       const settings = await window.Dumly.settings.loadSettings();
       if (settings.memorySettings.learnFromUse !== false) {
         await window.Dumly.repo.markCandidate(currentCandidate.id, 'used');
+        await window.Dumly.repo.markMemoriesHelpful(currentCandidate.memoryIdsUsed || []);
         const accepted = await window.Dumly.repo.saveAccepted({
           sessionId: session.id,
           candidateId: currentCandidate.id,
@@ -203,7 +233,9 @@
           acceptedVia: 'use_this',
           wasEdited: false,
           toneTags: [currentCandidate.tone],
+          keywords: ctx.keywords || [],
         });
+        window.Dumly.settings.updateStyleProfileFromAccepted(accepted).catch(() => {});
         maybeCleanup();
         await window.Dumly.repo.saveInsertionRecord({
           sessionId: session.id,
@@ -223,6 +255,7 @@
       const settings = await window.Dumly.settings.loadSettings();
       if (settings.memorySettings.learnFromCopy !== false) {
         await window.Dumly.repo.markCandidate(currentCandidate.id, 'copied');
+        await window.Dumly.repo.markMemoriesHelpful(currentCandidate.memoryIdsUsed || []);
         await window.Dumly.repo.saveAccepted({
           sessionId: session.id,
           candidateId: currentCandidate.id,
@@ -236,6 +269,7 @@
           acceptedVia: 'copy',
           wasEdited: false,
           toneTags: [currentCandidate.tone],
+          keywords: ctx.keywords || [],
         });
         maybeCleanup();
       }
@@ -256,7 +290,9 @@
         acceptedVia: 'manual_save',
         wasEdited: false,
         toneTags: [currentCandidate.tone],
+        keywords: ctx.keywords || [],
       });
+      await window.Dumly.repo.markMemoriesHelpful(currentCandidate.memoryIdsUsed || []);
       maybeCleanup();
     }
 
@@ -265,11 +301,15 @@
       const settings = await window.Dumly.settings.loadSettings();
       if (settings.memorySettings.rememberNegatives !== false) {
         await window.Dumly.repo.markCandidate(currentCandidate.id, 'rejected');
+        await window.Dumly.repo.markMemoriesUnhelpful(currentCandidate.memoryIdsUsed || []);
         await window.Dumly.repo.saveNegative({
           mode: session.mode,
           sourcePostText: ctx.sourcePostText,
           rejectedText: currentCandidate.suggestionText,
           reason,
+          topicTags: ctx.keywords || [],
+          sourceAuthorHandle: ctx.sourcePostAuthorHandle,
+          scope: reason === 'repetitive' ? 'session' : 'topic',
         });
       }
       await runGenerate('default', true);
@@ -277,7 +317,7 @@
 
     cardHandle = window.Dumly.card.mount(editorContainer, anchorBtn, { mode: session.mode }, {
       onUse: runUse,
-      onRegenerate: () => runGenerate(currentCandidate?.tone || 'default', true),
+      onRegenerate: () => runGenerate(cardHandle.getTone(), !!currentCandidate),
       onTone: runRewrite,
       onCopy: runCopy,
       onSave: runSave,
@@ -289,8 +329,6 @@
         } catch {}
       },
     });
-
-    runGenerate('default', false);
   }
 
   function createDumlyButton(replyBox) {
@@ -411,11 +449,14 @@
   }
 
   function scanAndInject() {
-    const editors = document.querySelectorAll(
-      '[data-testid="tweetTextarea_0"][role="textbox"]'
-    );
+    const editors = document.querySelectorAll([
+      '[data-testid^="tweetTextarea_"][role="textbox"]',
+      '[data-testid^="tweetTextarea_"][contenteditable="true"]',
+      '[data-testid^="tweetTextarea_"] [role="textbox"]',
+    ].join(', '));
     editors.forEach((editor) => {
-      const container = editor.closest('[data-testid="tweetTextarea_0_label"]')
+      const container = editor.closest('[data-testid^="tweetTextarea_"][data-testid$="_label"]')
+        || editor.closest('[data-testid^="tweetTextarea_"]')
         || editor.parentElement;
       if (container) injectButton(container);
     });
